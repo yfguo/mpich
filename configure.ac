@@ -602,6 +602,9 @@ AC_ARG_ENABLE(dbg-nolocal, AC_HELP_STRING([--enable-dbg-nolocal], [enables debug
 AC_ARG_ENABLE(dbg-localoddeven, AC_HELP_STRING([--enable-dbg-localoddeven], [enables debugging mode where shared-memory communication is enabled only between even processes or odd processes on a node]),
     AC_DEFINE(ENABLED_ODD_EVEN_CLIQUES, 1, [Define to enable debugging mode where shared-memory communication is done only between even procs or odd procs]))
 
+AC_ARG_ENABLE(runtime-limits, AC_HELP_STRING([--enable-runtime-limits], [enables setting runtime limits to MPICH internal data structures]),
+    AC_DEFINE(ENABLED_RUNTIME_LIMITS, 1, [Define to disable shared-memory communication for debugging]))
+
 AC_CANONICAL_TARGET
 
 # Find a C compiler.

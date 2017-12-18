@@ -9,6 +9,39 @@
 
 #include "mpichconf.h"
 
+/*
+=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+
+categories:
+    - name        : RUNTIME_LIMITS
+      description : cvars that control runtime limits of MPICH data strctures
+
+cvars:
+    - name        : MPIR_CVAR_RT_HANDLE_NUM_BLOCKS
+      category    : RUNTIME_LIMITS
+      type        : int
+      default     : 8192
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Specify the number of indirect blocks that is allowed when allocating
+        memory for handles.
+
+    - name        : MPIR_CVAR_RT_HANDLE_NUM_INDICES
+      category    : RUNTIME_LIMITS
+      type        : int
+      default     : 1024
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Specify the number of indices in each blocks that is allowed when
+        allocating memory for handles.
+
+=== END_MPI_T_CVAR_INFO_BLOCK ===
+*/
+
 /*TDSOverview.tex
 
   MPI has a number of data structures, most of which are represented by
@@ -184,6 +217,14 @@ const char *MPIR_Handle_get_kind_str(int kind);
 #define HANDLE_BLOCK_INDEX(a) ((a) & 0x00000FFF)
 
 /* Number of blocks is between 1 and 16384 */
+#if defined ENABLED_RUNTIME_LIMITS
+/* Number of indirect blocks of objects.
+ * The number of the blocks is between 0 and 16384 (limited by the mask size) */
+#define HANDLE_NUM_BLOCKS MPIR_CVAR_RT_HANDLE_NUM_BLOCKS
+/* Number of objects in a block is bewtween 1 and 4096 (each obj has an index
+ * within its block) */
+#define HANDLE_NUM_INDICES MPIR_CVAR_RT_HANDLE_NUM_INDICES
+#else
 #if defined MPID_HANDLE_NUM_BLOCKS
 #define HANDLE_NUM_BLOCKS MPID_HANDLE_NUM_BLOCKS
 #else
@@ -197,6 +238,7 @@ const char *MPIR_Handle_get_kind_str(int kind);
 #else
 #define HANDLE_NUM_INDICES 1024
 #endif /* MPID_HANDLE_NUM_INDICES */
+#endif /* ENABLED_RUNTIME_LIMITS */
 
 /* For direct, the remainder of the handle is the index into a predefined 
    block */

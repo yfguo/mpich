@@ -468,6 +468,11 @@ if test "$enable_ch4r_per_comm_msg_queue" = "yes" ; then
         [Define if CH4U will use per-communicator message queues])
 fi
 
+AC_ARG_WITH(ch4-handle-blocks, [--with-ch4-handle-blocks=[0-8192]     Number of blocks allocated for indirect handles],
+                               [ handle_blocks=$withval ],
+                               [ handle_blocks=8192 ])
+AC_DEFINE_UNQUOTED(MPID_HANDLE_NUM_BLOCKS,$handle_blocks,[Define the number of indirect handle blocks])
+
 AC_CHECK_HEADERS(sys/mman.h sys/stat.h fcntl.h)
 AC_CHECK_FUNC(mmap, [], [AC_MSG_ERROR(mmap is required to build CH4)])
 
