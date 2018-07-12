@@ -40,6 +40,7 @@ noinst_HEADERS += src/mpid/ch4/src/ch4_comm.h     \
                   src/mpid/ch4/src/ch4r_request.h
 
 mpi_core_sources += src/mpid/ch4/src/ch4_globals.c        \
+                    src/mpid/ch4/src/ch4r_init.c          \
                     src/mpid/ch4/src/mpid_ch4_net_array.c
 
 if BUILD_CH4_COLL_TUNING
