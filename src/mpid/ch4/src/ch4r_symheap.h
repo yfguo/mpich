@@ -299,6 +299,7 @@ static inline int MPIDI_CH4R_get_symmetric_heap(MPI_Aint size,
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_CH4R_GET_SYMMETRIC_HEAP);
     return mpi_errno;
   fn_fail:
+    *base = NULL;
     goto fn_exit;
 }
 
