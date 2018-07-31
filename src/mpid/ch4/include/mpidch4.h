@@ -93,7 +93,7 @@ MPIDI_CH4I_API(int, Accumulate, const void *, int, MPI_Datatype, int, MPI_Aint, 
 MPIDI_CH4I_API_NOINLINE(int, Win_create, void *, MPI_Aint, int, MPIR_Info *, MPIR_Comm *,
                         MPIR_Win **);
 MPIDI_CH4I_API(int, Win_fence, int, MPIR_Win *);
-MPIDI_CH4I_API(int, Win_free, MPIR_Win **);
+MPIDI_CH4I_API_NOINLINE(int, Win_free, MPIR_Win **);
 MPIDI_CH4I_API(int, Get, void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_get_info, MPIR_Win *, MPIR_Info **);
 MPIDI_CH4I_API(int, Win_lock, int, int, int, MPIR_Win *);
