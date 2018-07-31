@@ -10,6 +10,7 @@
  */
 
 #include "mpidimpl.h"
+#include "mpidch4r.h"
 
 /* This file includes all RMA callback routines on the packet issuing side.
  * All handler functions are named with suffix "_origin_cb". */

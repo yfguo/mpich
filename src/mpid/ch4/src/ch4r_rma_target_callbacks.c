@@ -10,6 +10,7 @@
  */
 
 #include "mpidimpl.h"
+#include "mpidch4r.h"
 
 /* This file includes all RMA callback routines and the completion function of
  * each callback (e.g., received all data) on the packet receiving side. All handler
