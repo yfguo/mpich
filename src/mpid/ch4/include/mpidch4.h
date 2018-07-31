@@ -238,7 +238,7 @@ MPIDI_CH4I_API(int, Iscatter, const void *, int, MPI_Datatype, void *, int, MPI_
 MPIDI_CH4I_API(int, Iscatterv, const void *, const int *, const int *, MPI_Datatype, void *, int,
                MPI_Datatype, int, MPIR_Comm *, MPIR_Request **);
 
-MPIDI_CH4I_API_NOINLINE(struct MPIR_Comm *comm, int mpi_errno, int exit_code,
+MPIDI_CH4I_API_NOINLINE(int, Abort, struct MPIR_Comm *comm, int mpi_errno, int exit_code,
                         const char *error_msg);
 
 /* This function is not exposed to the upper layers but functions in a way
