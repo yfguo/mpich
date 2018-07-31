@@ -25,9 +25,9 @@ MPIDI_CH4I_API_NOINLINE(int, Init, int *, char ***, int, int *, int *, int *);
 MPIDI_CH4I_API_NOINLINE(int, InitCompleted, void);
 MPIDI_CH4I_API(int, Cancel_recv, MPIR_Request *);
 MPIDI_CH4I_API(int, Cancel_send, MPIR_Request *);
-MPIDI_CH4I_API(int, Comm_disconnect, MPIR_Comm *);
-MPIDI_CH4I_API(int, Comm_spawn_multiple, int, char *[], char **[], const int[], MPIR_Info *[], int,
-               MPIR_Comm *, MPIR_Comm **, int[]);
+MPIDI_CH4I_API_NOINLINE(int, Comm_disconnect, MPIR_Comm *);
+MPIDI_CH4I_API_NOINLINE(int, Comm_spawn_multiple, int, char *[], char **[], const int[],
+                        MPIR_Info *[], int, MPIR_Comm *, MPIR_Comm **, int[]);
 MPIDI_CH4I_API_NOINLINE(int, Comm_failure_get_acked, MPIR_Comm *, MPIR_Group **);
 MPIDI_CH4I_API_NOINLINE(int, Comm_get_all_failed_procs, MPIR_Comm *, MPIR_Group **, int);
 MPIDI_CH4I_API_NOINLINE(int, Comm_revoke, MPIR_Comm *, int);
@@ -46,10 +46,12 @@ MPIDI_CH4I_API(int, Issend, const void *, MPI_Aint, MPI_Datatype, int, int, MPIR
                MPIR_Request **);
 MPIDI_CH4I_API(int, Mrecv, void *, MPI_Aint, MPI_Datatype, MPIR_Request *, MPI_Status *);
 MPIDI_CH4I_API(int, Imrecv, void *, MPI_Aint, MPI_Datatype, MPIR_Request *, MPIR_Request **);
-MPIDI_CH4I_API(int, Open_port, MPIR_Info *, char *);
-MPIDI_CH4I_API(int, Close_port, const char *);
-MPIDI_CH4I_API(int, Comm_accept, const char *, MPIR_Info *, int, MPIR_Comm *, MPIR_Comm **);
-MPIDI_CH4I_API(int, Comm_connect, const char *, MPIR_Info *, int, MPIR_Comm *, MPIR_Comm **);
+MPIDI_CH4I_API_NOINLINE(int, Open_port, MPIR_Info *, char *);
+MPIDI_CH4I_API_NOINLINE(int, Close_port, const char *);
+MPIDI_CH4I_API_NOINLINE(int, Comm_accept, const char *, MPIR_Info *, int, MPIR_Comm *,
+                        MPIR_Comm **);
+MPIDI_CH4I_API_NOINLINE(int, Comm_connect, const char *, MPIR_Info *, int, MPIR_Comm *,
+                        MPIR_Comm **);
 MPIDI_CH4I_API(int, Probe, int, int, MPIR_Comm *, int, MPI_Status *);
 MPIDI_CH4I_API(int, Mprobe, int, int, MPIR_Comm *, int, MPIR_Request **, MPI_Status *);
 MPIDI_CH4I_API(int, Improbe, int, int, MPIR_Comm *, int, int *, MPIR_Request **, MPI_Status *);
@@ -88,7 +90,8 @@ MPIDI_CH4I_API(int, Rsend_init, const void *, int, MPI_Datatype, int, int, MPIR_
 MPIDI_CH4I_API(int, Startall, int, MPIR_Request *[]);
 MPIDI_CH4I_API(int, Accumulate, const void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype,
                MPI_Op, MPIR_Win *);
-MPIDI_CH4I_API(int, Win_create, void *, MPI_Aint, int, MPIR_Info *, MPIR_Comm *, MPIR_Win **);
+MPIDI_CH4I_API_NOINLINE(int, Win_create, void *, MPI_Aint, int, MPIR_Info *, MPIR_Comm *,
+                        MPIR_Win **);
 MPIDI_CH4I_API(int, Win_fence, int, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_free, MPIR_Win **);
 MPIDI_CH4I_API(int, Get, void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype, MPIR_Win *);
@@ -106,13 +109,13 @@ MPIDI_CH4I_API(int, Win_set_info, MPIR_Win *, MPIR_Info *);
 MPIDI_CH4I_API_NOINLINE(int, Comm_reenable_anysource, MPIR_Comm *, MPIR_Group **);
 MPIDI_CH4I_API_NOINLINE(int, Comm_remote_group_failed, MPIR_Comm *, MPIR_Group **);
 MPIDI_CH4I_API_NOINLINE(int, Comm_group_failed, MPIR_Comm *, MPIR_Group **);
-MPIDI_CH4I_API(int, Win_attach, MPIR_Win *, void *, MPI_Aint);
-MPIDI_CH4I_API(int, Win_allocate_shared, MPI_Aint, int, MPIR_Info *, MPIR_Comm *, void **,
-               MPIR_Win **);
+MPIDI_CH4I_API_NOINLINE(int, Win_attach, MPIR_Win *, void *, MPI_Aint);
+MPIDI_CH4I_API_NOINLINE(int, Win_allocate_shared, MPI_Aint, int, MPIR_Info *, MPIR_Comm *, void **,
+                        MPIR_Win **);
 MPIDI_CH4I_API(int, Rput, const void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype,
                MPIR_Win *, MPIR_Request **);
 MPIDI_CH4I_API(int, Win_flush_local, int, MPIR_Win *);
-MPIDI_CH4I_API(int, Win_detach, MPIR_Win *, const void *);
+MPIDI_CH4I_API_NOINLINE(int, Win_detach, MPIR_Win *, const void *);
 MPIDI_CH4I_API(int, Compare_and_swap, const void *, const void *, void *, MPI_Datatype, int,
                MPI_Aint, MPIR_Win *);
 MPIDI_CH4I_API(int, Raccumulate, const void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype,
@@ -121,12 +124,13 @@ MPIDI_CH4I_API(int, Rget_accumulate, const void *, int, MPI_Datatype, void *, in
                int, MPI_Aint, int, MPI_Datatype, MPI_Op, MPIR_Win *, MPIR_Request **);
 MPIDI_CH4I_API(int, Fetch_and_op, const void *, void *, MPI_Datatype, int, MPI_Aint, MPI_Op,
                MPIR_Win *);
-MPIDI_CH4I_API(int, Win_shared_query, MPIR_Win *, int, MPI_Aint *, int *, void *);
-MPIDI_CH4I_API(int, Win_allocate, MPI_Aint, int, MPIR_Info *, MPIR_Comm *, void *, MPIR_Win **);
+MPIDI_CH4I_API_NOINLINE(int, Win_shared_query, MPIR_Win *, int, MPI_Aint *, int *, void *);
+MPIDI_CH4I_API_NOINLINE(int, Win_allocate, MPI_Aint, int, MPIR_Info *, MPIR_Comm *, void *,
+                        MPIR_Win **);
 MPIDI_CH4I_API(int, Win_flush, int, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_flush_local_all, MPIR_Win *);
 MPIDI_CH4I_API(int, Win_unlock_all, MPIR_Win *);
-MPIDI_CH4I_API(int, Win_create_dynamic, MPIR_Info *, MPIR_Comm *, MPIR_Win **);
+MPIDI_CH4I_API_NOINLINE(int, Win_create_dynamic, MPIR_Info *, MPIR_Comm *, MPIR_Win **);
 MPIDI_CH4I_API(int, Rget, void *, int, MPI_Datatype, int, MPI_Aint, int, MPI_Datatype, MPIR_Win *,
                MPIR_Request **);
 MPIDI_CH4I_API(int, Win_sync, MPIR_Win *);
@@ -234,7 +238,8 @@ MPIDI_CH4I_API(int, Iscatter, const void *, int, MPI_Datatype, void *, int, MPI_
 MPIDI_CH4I_API(int, Iscatterv, const void *, const int *, const int *, MPI_Datatype, void *, int,
                MPI_Datatype, int, MPIR_Comm *, MPIR_Request **);
 
-int MPID_Abort(struct MPIR_Comm *comm, int mpi_errno, int exit_code, const char *error_msg);
+MPIDI_CH4I_API_NOINLINE(struct MPIR_Comm *comm, int mpi_errno, int exit_code,
+                        const char *error_msg);
 
 /* This function is not exposed to the upper layers but functions in a way
  * similar to the functions above. Other CH4-level functions should call this
