@@ -1,19 +1,20 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
+ *  (C) 2018 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  *
  *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
+ *  Copyright (C) 2011-2018 Intel Corporation.  Intel provides this material
  *  to Argonne National Laboratory subject to Software Grant and Corporate
  *  Contributor License Agreement dated February 8, 2012.
  */
-#ifndef OFI_INIT_H_INCLUDED
-#define OFI_INIT_H_INCLUDED
 
-#include "ofi_impl.h"
-#include "mpir_cvars.h"
+#include "mpidimpl.h"
 #include "mpidu_bc.h"
+#include "mpir_cvars.h"
+#ifndef NETMOD_INLINE
+#include "ofi_noinline.h"
+#endif
 
 /*
 === BEGIN_MPI_T_CVAR_INFO_BLOCK ===
@@ -280,17 +281,18 @@ cvars:
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
-static inline void MPIDI_OFI_dump_providers(struct fi_info *prov);
-static inline int MPIDI_OFI_create_endpoint(struct fi_info *prov_use,
-                                            struct fid_domain *domain,
-                                            struct fid_cq *p2p_cq,
-                                            struct fid_cntr *rma_ctr,
-                                            struct fid_av *av, struct fid_ep **ep, int index);
-static inline int MPIDI_OFI_application_hints(int rank);
-static inline int MPIDI_OFI_init_global_settings(const char *prov_name);
-static inline int MPIDI_OFI_init_hints(struct fi_info *hints);
+static void dump_providers(struct fi_info *prov);
+static int create_endpoint(struct fi_info *prov_use, struct fid_domain *domain,
+                           struct fid_cq *p2p_cq, struct fid_cntr *rma_ctr, struct fid_av *av,
+                           struct fid_ep **ep, int index);
+static int applications_hints(int rank);
+static int init_global_settings(const char *prov_name);
+static int init_hints(struct fi_info *hints);
+static int conn_manager_init();
+static int conn_manager_destroy();
+static int dynproc_send_disconnect(int conn_id);
 
-static inline int MPIDI_OFI_set_eagain(MPIR_Comm * comm_ptr, MPIR_Info * info, void *state)
+static int info_set_eagain(MPIR_Comm * comm_ptr, MPIR_Info * info, void *state)
 {
     if (!strncmp(info->value, "true", strlen("true")))
         MPIDI_OFI_COMM(comm_ptr).eagain = TRUE;
@@ -300,7 +302,11 @@ static inline int MPIDI_OFI_set_eagain(MPIR_Comm * comm_ptr, MPIR_Info * info, v
     return MPI_SUCCESS;
 }
 
-static inline int MPIDI_OFI_conn_manager_init()
+#undef FUNCNAME
+#define FUNCNAME conn_manager_init
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static int conn_manager_init()
 {
     int mpi_errno = MPI_SUCCESS, i;
 
@@ -336,7 +342,11 @@ static inline int MPIDI_OFI_conn_manager_init()
     goto fn_exit;
 }
 
-static inline int MPIDI_OFI_conn_manager_destroy()
+#undef FUNCNAME
+#define FUNCNAME conn_manager_destroy
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static int conn_manager_destroy()
 {
     int mpi_errno = MPI_SUCCESS, i, j;
     MPIDI_OFI_dynamic_process_request_t *req;
@@ -364,7 +374,7 @@ static inline int MPIDI_OFI_conn_manager_destroy()
         for (i = 0; i < max_n_conn; ++i) {
             switch (MPIDI_Global.conn_mgr.conn_list[i].state) {
                 case MPIDI_OFI_DYNPROC_CONNECTED_CHILD:
-                    MPIDI_OFI_dynproc_send_disconnect(i);
+                    dynproc_send_disconnect(i);
                     break;
                 case MPIDI_OFI_DYNPROC_LOCAL_DISCONNECTED_PARENT:
                 case MPIDI_OFI_DYNPROC_CONNECTED_PARENT:
@@ -412,15 +422,81 @@ static inline int MPIDI_OFI_conn_manager_destroy()
 }
 
 #undef FUNCNAME
-#define FUNCNAME MPIDI_NM_mpi_init_hook
+#define FUNCNAME dynproc_send_disconnect
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_NM_mpi_init_hook(int rank,
-                                         int size,
-                                         int appnum,
-                                         int *tag_ub,
-                                         MPIR_Comm * comm_world,
-                                         MPIR_Comm * comm_self, int spawned, int *n_vnis_provided)
+static int dynproc_send_disconnect(int conn_id)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_Context_id_t context_id = 0xF000;
+    MPIDI_OFI_dynamic_process_request_t req;
+    uint64_t match_bits = 0;
+    int close_msg = 0xcccccccc;
+    int rank = MPIDI_Global.conn_mgr.conn_list[conn_id].rank;
+    struct fi_msg_tagged msg;
+    struct iovec msg_iov;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
+
+    if (MPIDI_Global.conn_mgr.conn_list[conn_id].state == MPIDI_OFI_DYNPROC_CONNECTED_CHILD) {
+        MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
+                        (MPL_DBG_FDEST, " send disconnect msg conn_id=%d from child side",
+                         conn_id));
+        match_bits = MPIDI_OFI_init_sendtag(context_id, rank, 1, MPIDI_OFI_DYNPROC_SEND);
+
+        /* fi_av_map here is not quite right for some providers */
+        /* we need to get this connection from the sockname     */
+        req.done = 0;
+        req.event_id = MPIDI_OFI_EVENT_DYNPROC_DONE;
+        msg_iov.iov_base = &close_msg;
+        msg_iov.iov_len = sizeof(close_msg);
+        msg.msg_iov = &msg_iov;
+        msg.desc = NULL;
+        msg.iov_count = 0;
+        msg.addr = MPIDI_Global.conn_mgr.conn_list[conn_id].dest;
+        msg.tag = match_bits;
+        msg.ignore = context_id;
+        msg.context = (void *) &req.context;
+        msg.data = 0;
+        MPIDI_OFI_CALL_RETRY(fi_tsendmsg(MPIDI_Global.ctx[0].tx, &msg,
+                                         FI_COMPLETION | FI_TRANSMIT_COMPLETE |
+                                         (MPIDI_OFI_ENABLE_DATA ? FI_REMOTE_CQ_DATA : 0)), tsendmsg,
+                             MPIDI_OFI_CALL_LOCK, FALSE);
+        MPIDI_OFI_PROGRESS_WHILE(!req.done);
+    }
+
+    switch (MPIDI_Global.conn_mgr.conn_list[conn_id].state) {
+        case MPIDI_OFI_DYNPROC_CONNECTED_CHILD:
+            MPIDI_Global.conn_mgr.conn_list[conn_id].state =
+                MPIDI_OFI_DYNPROC_LOCAL_DISCONNECTED_CHILD;
+            break;
+        case MPIDI_OFI_DYNPROC_CONNECTED_PARENT:
+            MPIDI_Global.conn_mgr.conn_list[conn_id].state =
+                MPIDI_OFI_DYNPROC_LOCAL_DISCONNECTED_PARENT;
+            break;
+        default:
+            break;
+    }
+
+    MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
+                    (MPL_DBG_FDEST, " local_disconnected conn_id=%d state=%d",
+                     conn_id, MPIDI_Global.conn_mgr.conn_list[conn_id].state));
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+#undef FUNCNAME
+#define FUNCNAME MPIDI_OFI_mpi_init_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_ub, MPIR_Comm * comm_world,
+                            MPIR_Comm * comm_self, int spawned, int *n_vnis_provided)
 {
     int mpi_errno = MPI_SUCCESS, pmi_errno, i, fi_version;
     int thr_err = 0;
@@ -436,7 +512,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NETMOD_OFI_INIT);
 
     if (!MPIDI_OFI_ENABLE_RUNTIME_CHECKS) {
-        MPIDI_OFI_init_global_settings(MPIR_CVAR_OFI_USE_PROVIDER);
+        init_global_settings(MPIR_CVAR_OFI_USE_PROVIDER);
     } else {
         /* when runtime checks are enabled, and no provider name is set, then
          * try to select the fastest provider which fit minimal requirements.
@@ -444,7 +520,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
          * of global settings by default minimal values. We are assuming
          * that libfabric returns available provider list sorted by performance
          * (faster - first) */
-        MPIDI_OFI_init_global_settings(MPIR_CVAR_OFI_USE_PROVIDER ? MPIR_CVAR_OFI_USE_PROVIDER :
+        init_global_settings(MPIR_CVAR_OFI_USE_PROVIDER ? MPIR_CVAR_OFI_USE_PROVIDER :
                                        "unknown");
     }
 
@@ -488,7 +564,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     else
         fi_version = FI_VERSION(FI_MAJOR_VERSION, FI_MINOR_VERSION);
 
-    MPIDI_OFI_init_hints(hints);
+    init_hints(hints);
 
     /* ------------------------------------------------------------------------ */
     /* fi_getinfo:  returns information about fabric  services for reaching a   */
@@ -519,7 +595,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
 
             /* set global settings according to evaluated provider */
             if (!MPIR_CVAR_OFI_USE_PROVIDER)
-                MPIDI_OFI_init_global_settings(prov_use->fabric_attr->prov_name);
+                init_global_settings(prov_use->fabric_attr->prov_name);
 
             /* Check that this provider meets the minimum requirements for the user */
             if (MPIDI_OFI_ENABLE_DATA && (!(prov_use->caps & FI_DIRECTED_RECV) ||
@@ -589,7 +665,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
             if (!MPIR_CVAR_OFI_USE_PROVIDER) {
                 /* as soon as we updates globals for the provider, let's update
                  * hints that corresponds to the current globals */
-                MPIDI_OFI_init_hints(hints);
+                init_hints(hints);
                 /* set provider name to hints to make more accurate selection */
                 provname = MPL_strdup(prov_use->fabric_attr->prov_name);
                 hints->fabric_attr->prov_name = provname;
@@ -599,8 +675,8 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
 
         if (prov_first && !prov && !MPIR_CVAR_OFI_USE_PROVIDER) {
             /* could not find suitable provider. ok, let's try fallback mode */
-            MPIDI_OFI_init_global_settings(prov_first->fabric_attr->prov_name);
-            MPIDI_OFI_init_hints(hints);
+            init_global_settings(prov_first->fabric_attr->prov_name);
+            init_hints(hints);
             MPIDI_OFI_CALL(fi_getinfo(fi_version, NULL, NULL, 0ULL, hints, &prov), addrinfo);
             MPIR_ERR_CHKANDJUMP(prov == NULL, mpi_errno, MPI_ERR_OTHER, "**ofid_addrinfo");
             prov_use = prov;
@@ -642,7 +718,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
                         MPI_ERR_OTHER, "**ofi_provider_mismatch");
     prov_use = prov;
     if (MPIR_CVAR_OFI_DUMP_PROVIDERS)
-        MPIDI_OFI_dump_providers(prov);
+        dump_providers(prov);
 
     *tag_ub = (1ULL << MPIDI_OFI_TAG_BITS) - 1;
 
@@ -686,7 +762,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     }
 
     /* Print some debugging output to give the user some hints */
-    mpi_errno = MPIDI_OFI_application_hints(rank);
+    mpi_errno = applications_hints(rank);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
@@ -863,7 +939,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     }
 
     for (i = 0; i < MPIDI_Global.max_ch4_vnis; i++) {
-        MPIDI_OFI_MPI_CALL_POP(MPIDI_OFI_create_endpoint(prov_use,
+        MPIDI_OFI_MPI_CALL_POP(create_endpoint(prov_use,
                                                          MPIDI_Global.domain,
                                                          MPIDI_Global.p2p_cq,
                                                          MPIDI_Global.rma_cmpl_cntr,
@@ -1001,7 +1077,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     /* Initialize Dynamic Tasking       */
     /* -------------------------------- */
 #if !defined(USE_PMIX_API) && !defined(USE_PMI2_API)
-    MPIDI_OFI_conn_manager_init();
+    conn_manager_init();
     if (spawned) {
         char parent_port[MPIDI_MAX_KVS_VALUE_LEN];
         MPIDI_OFI_PMI_CALL_POP(PMI_KVS_Get(MPIDI_Global.kvsname,
@@ -1014,7 +1090,7 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     }
 #endif
 
-    mpi_errno = MPIR_Comm_register_hint("eagain", MPIDI_OFI_set_eagain, NULL);
+    mpi_errno = MPIR_Comm_register_hint("eagain", info_set_eagain, NULL);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
@@ -1039,8 +1115,11 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
     goto fn_exit;
 }
 
-
-static inline int MPIDI_NM_mpi_finalize_hook(void)
+#undef FUNCNAME
+#define FUNCNAME MPIDI_OFI_mpi_finalize_hook
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+int MPIDI_OFI_mpi_finalize_hook(void)
 {
     int thr_err = 0, mpi_errno = MPI_SUCCESS;
     int i = 0;
@@ -1052,7 +1131,7 @@ static inline int MPIDI_NM_mpi_finalize_hook(void)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_NETMOD_OFI_FINALIZE);
 
     /* clean dynamic process connections */
-    MPIDI_OFI_conn_manager_destroy();
+    conn_manager_destroy();
 
     /* Progress until we drain all inflight RMA send long buffers */
     while (OPA_load_int(&MPIDI_Global.am_inflight_rma_send_mrs) > 0)
@@ -1133,13 +1212,13 @@ static inline int MPIDI_NM_mpi_finalize_hook(void)
     goto fn_exit;
 }
 
-static inline int MPIDI_NM_get_vni_attr(int vni)
+int MPIDI_OFI_get_vni_attr(int vni)
 {
     MPIR_Assert(0 <= vni && vni < 1);
     return MPIDI_VNI_TX | MPIDI_VNI_RX;
 }
 
-static inline void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
+void *MPIDI_OFI_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
 {
 
     void *ap;
@@ -1147,7 +1226,7 @@ static inline void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
     return ap;
 }
 
-static inline int MPIDI_NM_mpi_free_mem(void *ptr)
+int MPIDI_OFI_mpi_free_mem(void *ptr)
 {
     int mpi_errno = MPI_SUCCESS;
     MPL_free(ptr);
@@ -1155,8 +1234,7 @@ static inline int MPIDI_NM_mpi_free_mem(void *ptr)
     return mpi_errno;
 }
 
-static inline int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr,
-                                         int idx, int *lpid_ptr, MPL_bool is_remote)
+int MPIDI_OFI_comm_get_lpid(MPIR_Comm * comm_ptr, int idx, int *lpid_ptr, MPL_bool is_remote)
 {
     int avtid = 0, lpid = 0;
     if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM)
@@ -1171,8 +1249,7 @@ static inline int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr,
     return MPI_SUCCESS;
 }
 
-static inline int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size,
-                                           char **local_upids)
+int MPIDI_OFI_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size, char **local_upids)
 {
     int mpi_errno = MPI_SUCCESS;
     int i, total_size = 0;
@@ -1211,9 +1288,8 @@ static inline int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upi
     goto fn_exit;
 }
 
-static inline int MPIDI_NM_upids_to_lupids(int size,
-                                           size_t * remote_upid_size,
-                                           char *remote_upids, int **remote_lupids)
+int MPIDI_OFI_upids_to_lupids(int size,
+                              size_t * remote_upid_size, char *remote_upids, int **remote_lupids)
 {
     int i, mpi_errno = MPI_SUCCESS;
     int *new_avt_procs;
@@ -1292,22 +1368,18 @@ static inline int MPIDI_NM_upids_to_lupids(int size,
     goto fn_exit;
 }
 
-static inline int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr,
-                                                       int size, const int lpids[])
+int MPIDI_OFI_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr, int size, const int lpids[])
 {
     return 0;
 }
 
-
 #undef FUNCNAME
-#define FUNCNAME MPIDI_OFI_create_endpoint
+#define FUNCNAME create_endpoint
 #undef FCNAME
 #define FCNAME MPL_QUOTE(FUNCNAME)
-static inline int MPIDI_OFI_create_endpoint(struct fi_info *prov_use,
-                                            struct fid_domain *domain,
-                                            struct fid_cq *p2p_cq,
-                                            struct fid_cntr *rma_ctr,
-                                            struct fid_av *av, struct fid_ep **ep, int index)
+static int create_endpoint(struct fi_info *prov_use, struct fid_domain *domain,
+                           struct fid_cq *p2p_cq, struct fid_cntr *rma_ctr, struct fid_av *av,
+                           struct fid_ep **ep, int index)
 {
     int mpi_errno = MPI_SUCCESS;
     struct fi_tx_attr tx_attr;
@@ -1403,7 +1475,7 @@ static inline int MPIDI_OFI_create_endpoint(struct fi_info *prov_use,
     goto fn_exit;
 }
 
-static inline void MPIDI_OFI_dump_providers(struct fi_info *prov)
+static void dump_providers(struct fi_info *prov)
 {
     fprintf(stdout, "Dumping Providers(first=%p):\n", prov);
     while (prov) {
@@ -1412,7 +1484,7 @@ static inline void MPIDI_OFI_dump_providers(struct fi_info *prov)
     }
 }
 
-static inline int MPIDI_OFI_application_hints(int rank)
+static int applications_hints(int rank)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -1503,7 +1575,7 @@ static inline int MPIDI_OFI_application_hints(int rank)
     return mpi_errno;
 }
 
-static inline int MPIDI_OFI_init_global_settings(const char *prov_name)
+static int init_global_settings(const char *prov_name)
 {
     /* Seed the global settings values for cases where we are using runtime sets */
     MPIDI_Global.settings.enable_data =
@@ -1613,7 +1685,7 @@ static inline int MPIDI_OFI_init_global_settings(const char *prov_name)
     return MPI_SUCCESS;
 }
 
-static inline int MPIDI_OFI_init_hints(struct fi_info *hints)
+static int init_hints(struct fi_info *hints)
 {
     int fi_version = FI_VERSION(FI_MAJOR_VERSION, FI_MINOR_VERSION);
     MPIR_Assert(hints != NULL);
@@ -1743,5 +1815,3 @@ static inline int MPIDI_OFI_init_hints(struct fi_info *hints)
 
     return MPI_SUCCESS;
 }
-
-#endif /* OFI_INIT_H_INCLUDED */
