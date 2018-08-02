@@ -709,9 +709,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * ne
                                                                   int size,
                                                                   const int lpids[])
     MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_create_hook(MPIR_Comm *
-                                                           comm) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_free_hook(MPIR_Comm * comm) MPL_STATIC_INLINE_SUFFIX;
+int MPIDI_NM_mpi_comm_create_hook(MPIR_Comm * comm);
+int MPIDI_NM_mpi_comm_free_hook(MPIR_Comm * comm);
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_hook(MPIR_Win * win) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate_hook(MPIR_Win *
                                                             win) MPL_STATIC_INLINE_SUFFIX;

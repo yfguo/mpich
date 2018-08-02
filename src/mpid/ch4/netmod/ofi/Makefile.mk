@@ -12,9 +12,12 @@
 if BUILD_CH4_NETMOD_OFI
 
 noinst_HEADERS     +=
+
 mpi_core_sources   += src/mpid/ch4/netmod/ofi/func_table.c \
                       src/mpid/ch4/netmod/ofi/globals.c \
+                      src/mpid/ch4/netmod/ofi/ofi_comm.c \
                       src/mpid/ch4/netmod/ofi/util.c
+
 errnames_txt_files += src/mpid/ch4/netmod/ofi/errnames.txt
 external_subdirs   += @ofisrcdir@
 pmpi_convenience_libs += @ofilib@
