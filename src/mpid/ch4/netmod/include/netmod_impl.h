@@ -303,97 +303,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * ne
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_hook(MPIR_Win * win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_create_hook(win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate_hook(MPIR_Win * win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_allocate_hook(win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate_shared_hook(MPIR_Win * win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_allocate_shared_hook(win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_dynamic_hook(MPIR_Win * win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_create_dynamic_hook(win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach_hook(MPIR_Win * win, void *base, MPI_Aint size)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_attach_hook(win, base, size);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach_hook(MPIR_Win * win, const void *base)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_detach_hook(win, base);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH_HOOK);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free_hook(MPIR_Win * win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_FREE_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_FREE_HOOK);
-
-    ret = MPIDI_NM_func->mpi_win_free_hook(win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_FREE_HOOK);
-    return ret;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_rma_win_cmpl_hook(MPIR_Win * win)
 {
     int ret;
@@ -787,21 +696,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_set_info(MPIR_Win * win, MPIR_Info
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_shared_query(MPIR_Win * win, int rank,
-                                                           MPI_Aint * size, int *disp_unit,
-                                                           void *baseptr)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_SHARED_QUERY);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_SHARED_QUERY);
-
-    ret = MPIDI_NM_native_func->mpi_win_shared_query(win, rank, size, disp_unit, baseptr);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_SHARED_QUERY);
-    return ret;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr, int origin_count,
                                               MPI_Datatype origin_datatype, int target_rank,
                                               MPI_Aint target_disp, int target_count,
@@ -944,19 +838,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr, int origin_coun
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_free(MPIR_Win ** win_ptr)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_FREE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_FREE);
-
-    ret = MPIDI_NM_native_func->mpi_win_free(win_ptr);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_FREE);
-    return ret;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_fence(int assert, MPIR_Win * win)
 {
     int ret;
@@ -967,21 +848,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_fence(int assert, MPIR_Win * win)
     ret = MPIDI_NM_native_func->mpi_win_fence(assert, win);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_FENCE);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create(void *base, MPI_Aint length, int disp_unit,
-                                                     MPIR_Info * info, MPIR_Comm * comm_ptr,
-                                                     MPIR_Win ** win_ptr)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE);
-
-    ret = MPIDI_NM_native_func->mpi_win_create(base, length, disp_unit, info, comm_ptr, win_ptr);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE);
     return ret;
 }
 
@@ -1001,36 +867,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_accumulate(const void *origin_addr, in
                                                target_datatype, op, win, addr);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_ACCUMULATE);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_attach(MPIR_Win * win, void *base, MPI_Aint size)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH);
-
-    ret = MPIDI_NM_native_func->mpi_win_attach(win, base, size);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ATTACH);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate_shared(MPI_Aint size, int disp_unit,
-                                                              MPIR_Info * info_ptr,
-                                                              MPIR_Comm * comm_ptr,
-                                                              void **base_ptr, MPIR_Win ** win_ptr)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED);
-
-    ret = MPIDI_NM_native_func->mpi_win_allocate_shared(size, disp_unit, info_ptr, comm_ptr,
-                                                        base_ptr, win_ptr);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE_SHARED);
     return ret;
 }
 
@@ -1064,19 +900,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_flush_local(int rank, MPIR_Win * w
     ret = MPIDI_NM_native_func->mpi_win_flush_local(rank, win, addr);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_FLUSH_LOCAL);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_detach(MPIR_Win * win, const void *base)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH);
-
-    ret = MPIDI_NM_native_func->mpi_win_detach(win, base);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_DETACH);
     return ret;
 }
 
@@ -1162,21 +985,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr, 
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_allocate(MPI_Aint size, int disp_unit,
-                                                       MPIR_Info * info, MPIR_Comm * comm,
-                                                       void *baseptr, MPIR_Win ** win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE);
-
-    ret = MPIDI_NM_native_func->mpi_win_allocate(size, disp_unit, info, comm, baseptr, win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_ALLOCATE);
-    return ret;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_flush(int rank, MPIR_Win * win,
                                                     MPIDI_av_entry_t * addr)
 {
@@ -1214,20 +1022,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_unlock_all(MPIR_Win * win)
     ret = MPIDI_NM_native_func->mpi_win_unlock_all(win);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_UNLOCK_ALL);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_win_create_dynamic(MPIR_Info * info, MPIR_Comm * comm,
-                                                             MPIR_Win ** win)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC);
-
-    ret = MPIDI_NM_native_func->mpi_win_create_dynamic(info, comm, win);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_WIN_CREATE_DYNAMIC);
     return ret;
 }
 
