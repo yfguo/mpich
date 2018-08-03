@@ -660,20 +660,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_init_hook(int rank, int size, int appn
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_finalize_hook(void) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_vni_attr(int vni) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_progress(int vni, int blocking) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_connect(const char *port_name, MPIR_Info * info,
-                                                       int root, int timeout,
-                                                       MPIR_Comm * comm, MPIR_Comm **
-                                                       newcomm_ptr) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_disconnect(MPIR_Comm *
-                                                          comm_ptr) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_open_port(MPIR_Info * info_ptr,
-                                                    char *port_name) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_close_port(const char *port_name)
-    MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_comm_accept(const char *port_name, MPIR_Info * info,
-                                                      int root, MPIR_Comm * comm,
-                                                      MPIR_Comm **
-                                                      newcomm_ptr) MPL_STATIC_INLINE_SUFFIX;
+int MPIDI_NM_mpi_comm_connect(const char *port_name, MPIR_Info * info, int root, int timeout,
+                              MPIR_Comm * comm, MPIR_Comm ** newcomm_ptr);
+int MPIDI_NM_mpi_comm_disconnect(MPIR_Comm * comm_ptr);
+int MPIDI_NM_mpi_open_port(MPIR_Info * info_ptr, char *port_name);
+int MPIDI_NM_mpi_close_port(const char *port_name);
+int MPIDI_NM_mpi_comm_accept(const char *port_name, MPIR_Info * info, int root, MPIR_Comm * comm,
+                             MPIR_Comm ** newcomm_ptr);
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_send_hdr(int rank, MPIR_Comm * comm, int handler_id,
                                                   const void *am_hdr,
                                                   size_t am_hdr_sz) MPL_STATIC_INLINE_SUFFIX;
