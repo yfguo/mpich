@@ -17,6 +17,7 @@
 #include "mpidimpl.h"
 
 #include "mpidig.h"
+#include "ch4r_callbacks.h"
 #include "ch4r_request.h"
 #include "ch4r_recv.h"
 
