@@ -36,6 +36,10 @@ int dynproc_exchange_map(int root, int phase, int port_id, fi_addr_t * conn, cha
                          size_t ** remote_upid_size, char **remote_upids, int **remote_node_ids);
 /* END   internal function decls */
 
+#undef FUNCNAME
+#define FUNCNAME free_port_name_tag
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 void free_port_name_tag(int tag)
 {
     int index, rem_tag;
@@ -51,6 +55,10 @@ void free_port_name_tag(int tag)
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_FREE_PORT_NAME_TAG);
 }
 
+#undef FUNCNAME
+#define FUNCNAME get_port_name_tag
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int get_port_name_tag(int *port_name_tag)
 {
     unsigned i, j;
@@ -120,6 +128,10 @@ int get_conn_name_from_port(const char *port_name, char *connname)
     return mpi_errno;
 }
 
+#undef FUNCNAME
+#define FUNCNAME dynproc_create_intercomm
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int dynproc_create_intercomm(const char *port_name, int remote_size, int *remote_lupids,
                              MPIR_Comm * comm_ptr, MPIR_Comm ** newcomm, int is_low_group,
                              char *api)
@@ -218,6 +230,10 @@ int dynproc_create_intercomm(const char *port_name, int remote_size, int *remote
     goto fn_exit;
 }
 
+#undef FUNCNAME
+#define FUNCNAME dynproc_handshake
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int dynproc_handshake(int root, int phase, int timeout, int port_id, fi_addr_t * conn,
                       MPIR_Comm * comm_ptr)
 {
@@ -342,6 +358,10 @@ int dynproc_handshake(int root, int phase, int timeout, int port_id, fi_addr_t *
     goto fn_exit;
 }
 
+#undef FUNCNAME
+#define FUNCNAME dynproc_exchange_map
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
 int dynproc_exchange_map(int root, int phase, int port_id, fi_addr_t * conn, char *conname,
                          MPIR_Comm * comm_ptr, int *out_root, int *remote_size,
                          size_t ** remote_upid_size, char **remote_upids, int **remote_node_ids)
