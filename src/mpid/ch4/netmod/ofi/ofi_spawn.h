@@ -21,11 +21,11 @@ int MPIDI_OFI_mpi_close_port(const char *port_name);
 int MPIDI_OFI_mpi_comm_accept(const char *port_name, MPIR_Info * info, int root,
                               MPIR_Comm * comm_ptr, MPIR_Comm ** newcomm);
 #ifdef NETMOD_INLINE
-#define MPIDI_NM_mpi_comm_connect MPIDI_NM_mpi_comm_connect
-#define MPIDI_NM_mpi_comm_disconnect MPIDI_NM_mpi_comm_disconnect
-#define MPIDI_NM_mpi_open_port MPIDI_NM_mpi_open_port
-#define MPIDI_NM_mpi_close_port MPIDI_NM_mpi_close_port
-#define MPIDI_NM_mpi_comm_accept MPIDI_NM_mpi_comm_accept
+#define MPIDI_NM_mpi_comm_connect MPIDI_OFI_mpi_comm_connect
+#define MPIDI_NM_mpi_comm_disconnect MPIDI_OFI_mpi_comm_disconnect
+#define MPIDI_NM_mpi_open_port MPIDI_OFI_mpi_open_port
+#define MPIDI_NM_mpi_close_port MPIDI_OFI_mpi_close_port
+#define MPIDI_NM_mpi_comm_accept MPIDI_OFI_mpi_comm_accept
 #endif
 
 #endif /* OFI_SPAWN_H_INCLUDED */
