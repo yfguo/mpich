@@ -653,12 +653,11 @@ extern MPIDI_NM_native_funcs_t *MPIDI_NM_native_func;
 extern int MPIDI_num_netmods;
 extern char MPIDI_NM_strings[][MPIDI_MAX_NETMOD_STRING_LEN];
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_init_hook(int rank, int size, int appnum, int *tag_ub,
-                                                    MPIR_Comm * comm_world, MPIR_Comm * comm_self,
-                                                    int spawned, int *n_vnis_provided)
-    MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_finalize_hook(void) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_vni_attr(int vni) MPL_STATIC_INLINE_SUFFIX;
+int MPIDI_NM_mpi_init_hook(int rank, int size, int appnum, int *tag_ub,
+                           MPIR_Comm * comm_world, MPIR_Comm * comm_self,
+                           int spawned, int *n_vnis_provided);
+int MPIDI_NM_mpi_finalize_hook(void);
+int MPIDI_NM_get_vni_attr(int vni);
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_progress(int vni, int blocking) MPL_STATIC_INLINE_SUFFIX;
 int MPIDI_NM_mpi_comm_connect(const char *port_name, MPIR_Info * info, int root, int timeout,
                               MPIR_Comm * comm, MPIR_Comm ** newcomm_ptr);
@@ -690,18 +689,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_i
                                                      MPIR_Request * sreq) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_NM_am_hdr_max_sz(void) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_recv(MPIR_Request * req) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr, int idx,
-                                                    int *lpid_ptr,
-                                                    MPL_bool is_remote) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size,
-                                                      char **local_upids) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_upids_to_lupids(int size, size_t * remote_upid_size,
-                                                      char *remote_upids,
-                                                      int **remote_lupids) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr,
-                                                                  int size,
-                                                                  const int lpids[])
-    MPL_STATIC_INLINE_SUFFIX;
+int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr, int idx, int *lpid_ptr, MPL_bool is_remote);
+int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size, char **local_upids);
+int MPIDI_NM_upids_to_lupids(int size, size_t * remote_upid_size, char *remote_upids,
+                             int **remote_lupids);
+int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr, int size, const int lpids[]);
 int MPIDI_NM_mpi_comm_create_hook(MPIR_Comm * comm);
 int MPIDI_NM_mpi_comm_free_hook(MPIR_Comm * comm);
 int MPIDI_NM_mpi_win_create_hook(MPIR_Win * win);
@@ -788,9 +780,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_imrecv(void *buf, MPI_Aint count, MPI_
                                                  MPIR_Request * message,
                                                  MPIR_Request ** rreqp) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_cancel_recv(MPIR_Request * rreq) MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
-    MPL_STATIC_INLINE_SUFFIX;
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_free_mem(void *ptr) MPL_STATIC_INLINE_SUFFIX;
+void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr);
+int MPIDI_NM_mpi_free_mem(void *ptr);
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_improbe(int source, int tag, MPIR_Comm * comm,
                                                   int context_offset, MPIDI_av_entry_t * addr,
                                                   int *flag, MPIR_Request ** message,

@@ -16,9 +16,9 @@
 #ifndef NETMOD_INLINE
 #ifndef NETMOD_DISABLE_INLINES
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_init_hook(int rank, int size, int appnum, int *tag_ub,
-                                                    MPIR_Comm * comm_world, MPIR_Comm * comm_self,
-                                                    int spawned, int *n_vnis_provided)
+int MPIDI_NM_mpi_init_hook(int rank, int size, int appnum, int *tag_ub,
+                           MPIR_Comm * comm_world, MPIR_Comm * comm_self,
+                           int spawned, int *n_vnis_provided)
 {
     int ret;
 
@@ -32,7 +32,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_init_hook(int rank, int size, int appn
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_finalize_hook(void)
+int MPIDI_NM_mpi_finalize_hook(void)
 {
     int ret;
 
@@ -45,7 +45,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_finalize_hook(void)
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_vni_attr(int vni)
+int MPIDI_NM_get_vni_attr(int vni)
 {
     int ret;
 
@@ -178,8 +178,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_recv(MPIR_Request * req)
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr, int idx,
-                                                    int *lpid_ptr, MPL_bool is_remote)
+int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr, int idx, int *lpid_ptr, MPL_bool is_remote)
 {
     int ret;
 
@@ -192,8 +191,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_comm_get_lpid(MPIR_Comm * comm_ptr, int id
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size,
-                                                      char **local_upids)
+int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t ** local_upid_size, char **local_upids)
 {
     int ret;
 
@@ -206,8 +204,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_get_local_upids(MPIR_Comm * comm, size_t *
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_upids_to_lupids(int size, size_t * remote_upid_size,
-                                                      char *remote_upids, int **remote_lupids)
+int MPIDI_NM_upids_to_lupids(int size, size_t * remote_upid_size,
+                             char *remote_upids, int **remote_lupids)
 {
     int ret;
 
@@ -220,8 +218,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_upids_to_lupids(int size, size_t * remote_
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr,
-                                                                  int size, const int lpids[])
+int MPIDI_NM_create_intercomm_from_lpids(MPIR_Comm * newcomm_ptr, int size, const int lpids[])
 {
     int ret;
 
@@ -556,7 +553,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_cancel_recv(MPIR_Request * rreq)
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
+void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * info_ptr)
 {
     void *ret;
 
@@ -569,7 +566,7 @@ MPL_STATIC_INLINE_PREFIX void *MPIDI_NM_mpi_alloc_mem(size_t size, MPIR_Info * i
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_free_mem(void *ptr)
+int MPIDI_NM_mpi_free_mem(void *ptr)
 {
     int ret;
 

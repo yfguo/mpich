@@ -15,6 +15,7 @@ noinst_HEADERS     +=
 
 mpi_core_sources   += src/mpid/ch4/netmod/ofi/func_table.c \
                       src/mpid/ch4/netmod/ofi/globals.c \
+                      src/mpid/ch4/netmod/ofi/ofi_init.c \
                       src/mpid/ch4/netmod/ofi/ofi_comm.c \
                       src/mpid/ch4/netmod/ofi/ofi_spawn.c \
                       src/mpid/ch4/netmod/ofi/ofi_win.c \
