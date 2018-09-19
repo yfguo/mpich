@@ -37,6 +37,8 @@ static inline int MPIDI_NM_mpi_comm_create_hook(MPIR_Comm * comm)
     /* Do not handle intercomms */
     if (comm->comm_kind == MPIR_COMM_KIND__INTERCOMM)
         goto fn_exit;
+    /* eagain defaults to off */
+    MPIDI_OFI_COMM(comm).lw_recv = FALSE;
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_COMM_CREATE_HOOK);
     return mpi_errno;
@@ -57,6 +59,12 @@ static inline int MPIDI_NM_mpi_comm_free_hook(MPIR_Comm * comm)
     MPIDI_CH4U_map_destroy(MPIDI_OFI_COMM(comm).huge_recv_counters);
     MPIDI_OFI_index_allocator_destroy(MPIDI_OFI_COMM(comm).win_id_allocator);
     MPIDI_OFI_index_allocator_destroy(MPIDI_OFI_COMM(comm).rma_id_allocator);
+
+    if (MPIDI_OFI_COMM(comm).lw_recv == TRUE) {
+        MPIR_Request_free(MPIDI_OFI_COMM(comm).lw_recv_req);
+        MPIDI_OFI_COMM(comm).lw_recv_req = NULL;
+    }
+
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_COMM_FREE_HOOK);
     return mpi_errno;

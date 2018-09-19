@@ -276,6 +276,47 @@ static inline int MPIDI_OFI_init_hints(struct fi_info *hints);
         MPIDI_OFI_choose_provider(prov,prov_use);                           \
     } while (0);
 
+#undef FUNCNAME
+#define FUNCNAME MPIDI_OFI_set_lw_recv
+#undef FCNAME
+#define FCNAME MPL_QUOTE(FUNCNAME)
+static inline int MPIDI_OFI_set_lw_recv(MPIR_Comm * comm_ptr, MPIR_Info * info, void *state)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_Request *req = NULL;
+    if (!strncmp(info->value, "true", strlen("true"))) {
+        MPIDI_OFI_COMM(comm_ptr).lw_recv = TRUE;
+        MPIDI_OFI_COMM(comm_ptr).lw_recv_req = MPIR_Request_create(MPIR_REQUEST_KIND__RECV);
+        if (MPIDI_OFI_COMM(comm_ptr).lw_recv_req == NULL) {
+            MPIR_ERR_SETFATALANDJUMP(mpi_errno, MPI_ERR_OTHER, "**nomem");
+        }
+        MPIR_cc_set(&MPIDI_OFI_COMM(comm_ptr).lw_recv_req->cc, 0);
+        req = MPIDI_OFI_COMM(comm_ptr).lw_recv_req;
+        MPIDI_OFI_REQUEST(req, datatype) = MPI_DATATYPE_NULL;
+        MPIDI_OFI_REQUEST(req, event_id) = MPIDI_OFI_EVENT_RECV;
+        MPIDI_OFI_REQUEST(req, util_comm) = comm_ptr;
+        MPIDI_OFI_REQUEST(req, noncontig.pack) = NULL;
+        MPIDI_OFI_REQUEST(req, noncontig.nopack) = NULL;
+        req->status.MPI_SOURCE = MPI_UNDEFINED;
+        req->status.MPI_ERROR = MPI_SUCCESS;
+        req->status.MPI_TAG = 0;
+        MPIR_STATUS_SET_COUNT(req->status, 0);
+        MPIDI_CH4I_REQUEST(req, lightweight) = 1;
+    }
+    if (!strncmp(info->value, "false", strlen("false"))) {
+        MPIDI_OFI_COMM(comm_ptr).lw_recv = FALSE;
+        if (MPIDI_OFI_COMM(comm_ptr).lw_recv_req != NULL) {
+            MPIR_Request_free(MPIDI_OFI_COMM(comm_ptr).lw_recv_req);
+            MPIDI_OFI_COMM(comm_ptr).lw_recv_req = NULL;
+        }
+    }
+
+  fn_exit:
+    return MPI_SUCCESS;
+  fn_fail:
+    goto fn_exit;
+}
+
 static inline int MPIDI_OFI_conn_manager_init()
 {
     int mpi_errno = MPI_SUCCESS, i;
@@ -1050,6 +1091,10 @@ static inline int MPIDI_NM_mpi_init_hook(int rank,
         MPIR_Assert(MPIR_Process.comm_parent != NULL);
         MPL_strncpy(MPIR_Process.comm_parent->name, "MPI_COMM_PARENT", MPI_MAX_OBJECT_NAME);
     }
+
+    mpi_errno = MPIR_Comm_register_hint("lw_recv", MPIDI_OFI_set_lw_recv, NULL);
+    if (mpi_errno)
+        MPIR_ERR_POP(mpi_errno);
 
   fn_exit:
 

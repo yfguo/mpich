@@ -185,6 +185,7 @@ typedef struct {
         union {
         MPIDI_SHM_REQUEST_DECL} shm;
     } ch4;
+    int lightweight;
 } MPIDI_Devreq_t;
 #define MPIDI_REQUEST_HDR_SIZE              offsetof(struct MPIR_Request, dev.ch4.netmod)
 #define MPIDI_CH4I_REQUEST(req,field)       (((req)->dev).field)

@@ -224,11 +224,26 @@
         (req) = MPIDI_Global.lw_send_req;                               \
         MPIR_Request_add_ref((req));                                    \
     } while (0)
+#define MPIDI_OFI_RECV_REQUEST_CREATE_COMM(comm, req)                   \
+    do {                                                                \
+        int c = 0;                                                      \
+        (req) = MPIDI_OFI_COMM(comm).lw_recv_req;                       \
+        MPIR_cc_incr(&(req)->cc, &c);                                   \
+        MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE, (MPL_DBG_FDEST, " lw_recv_req cc=%d", c)); \
+        MPIR_Request_add_ref((req));                                    \
+    } while (0)
 #else
 #define MPIDI_OFI_SEND_REQUEST_CREATE_LW(req)                   \
     do {                                                                \
         (req) = MPIR_Request_create(MPIR_REQUEST_KIND__SEND);           \
         MPIR_cc_set(&(req)->cc, 0);                                     \
+    } while (0)
+#define MPIDI_OFI_RECV_REQUEST_CREATE_COMM(comm, req)                   \
+    do {                                                                \
+        int c = 0;                                                      \
+        (req) = MPIR_Request_create(MPIR_REQUEST_KIND__RECV);           \
+        MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq"); \
+        MPIR_cc_incr(&(req)->cc, &c);                                   \
     } while (0)
 #endif
 
