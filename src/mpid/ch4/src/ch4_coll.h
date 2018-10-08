@@ -1376,4 +1376,17 @@ MPL_STATIC_INLINE_PREFIX int MPID_Bcast_init(void *buffer, int count, MPI_Dataty
     return mpi_errno;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPID_Allreduce_init(const void *sendbuf, void *recvbuf, int count,
+                                                 MPI_Datatype datatype, MPI_Op op,
+                                                 MPIR_Comm * comm_ptr, MPIR_Info * info_ptr,
+                                                 MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    mpi_errno =
+        MPIR_Allreduce_init(sendbuf, recvbuf, count, datatype, op, comm_ptr, info_ptr, request);
+
+    return mpi_errno;
+}
+
 #endif /* CH4_COLL_H_INCLUDED */

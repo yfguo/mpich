@@ -919,7 +919,9 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_op_commutative:MPI_Op_commutative failed
 **mpi_op_commutative %O %p:MPI_Op_commutative(op=%O, commute=%p) failed
 **mpi_allreduce:MPI_Allreduce failed
-**mpi_allreduce %p %p %d %D %O %C:MPI_Allreduce(sbuf=%p, rbuf=%p, count=%d, datatype=%D, op=%O, comm=%C) failed
+**mpi_allreduce %p %p %d %D %O %C:MPI_Allreduce(sbuf=%p, rbuf=%p, count=%d, %D, %O, %C) failed
+**mpix_allreduce_init:MPIX_Allreduce_init failed
+**mpix_allreduce_init %p %p %d %D %O %C %I %p:MPIX_Allreduce_init(sendbuf=%p, recvbuf=%p, count=%d, %D, %0, %C, %I, request=%p) failed
 **mpi_reduce_scatter:MPI_Reduce_scatter failed
 **mpi_reduce_scatter %p %p %p %D %O %C:MPI_Reduce_scatter(sbuf=%p, rbuf=%p, rcnts=%p, datatype=%D, op=%O, comm=%C) failed
 **mpi_reduce_scatter_block:MPI_Reduce_scatter_block failed

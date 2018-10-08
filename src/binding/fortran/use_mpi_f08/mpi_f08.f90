@@ -916,6 +916,22 @@ interface MPI_Iallreduce
     end subroutine MPI_Iallreduce_f08ts
 end interface MPI_Iallreduce
 
+interface MPIX_Allreduce_init
+    subroutine MPIX_Allreduce_init_f08ts(sendbuf, recvbuf, count, datatype, op, comm, info, request, ierror)
+        use :: mpi_f08_types, only : MPI_Datatype, MPI_Op, MPI_Comm, MPI_Info, MPI_Request
+        implicit none
+        type(*), dimension(..), intent(in), asynchronous :: sendbuf
+        type(*), dimension(..), asynchronous :: recvbuf
+        integer, intent(in) :: count
+        type(MPI_Datatype), intent(in) :: datatype
+        type(MPI_Op), intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        type(MPI_Info), intent(in) :: info
+        type(MPI_Request), intent(out) :: request
+        integer, optional, intent(out) :: ierror
+    end subroutine MPIX_Allreduce_init_f08ts
+end interface MPIX_Allreduce_init
+
 interface MPI_Alltoall
     subroutine MPI_Alltoall_f08ts(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &
                                  comm, ierror)

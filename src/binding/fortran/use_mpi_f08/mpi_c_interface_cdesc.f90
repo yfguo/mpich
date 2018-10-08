@@ -394,6 +394,22 @@ function MPIR_Iallreduce_cdesc(sendbuf, recvbuf, count, datatype, op, comm, requ
     integer(c_int) :: ierror
 end function MPIR_Iallreduce_cdesc
 
+function MPIR_Allreduce_init_cdesc(sendbuf, recvbuf, count, datatype, op, comm, info, request) &
+    bind(C, name="MPIR_Allreduce_init_cdesc") result(ierror)
+    use, intrinsic :: iso_c_binding, only : c_int
+    use :: mpi_c_interface_types, only : c_Datatype, c_Op, c_Comm, c_Info, c_Request
+    implicit none
+    type(*), dimension(..), intent(in) :: sendbuf
+    type(*), dimension(..) :: recvbuf
+    integer(c_int), value, intent(in) :: count
+    integer(c_Datatype), value, intent(in) :: datatype
+    integer(c_Op), value, intent(in) :: op
+    integer(c_Comm), value, intent(in) :: comm
+    integer(c_Info), value, intent(in) :: info
+    integer(c_Request), intent(out) :: request
+    integer(c_int) :: ierror
+end function MPIR_Allreduce_init_cdesc
+
 function MPIR_Alltoall_cdesc(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm) &
     bind(C, name="MPIR_Alltoall_cdesc") result(ierror)
     use, intrinsic :: iso_c_binding, only : c_int
