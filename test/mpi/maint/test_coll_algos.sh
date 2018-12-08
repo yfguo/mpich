@@ -160,6 +160,7 @@ for algo_name in ${algo_names}; do
                     echo "allred5 5 ${env}" >> ${testlist_cvar}
                     echo "allred6 4 ${env}" >> ${testlist_cvar}
                     echo "allred6 7 ${env}" >> ${testlist_cvar}
+                    echo "p_allred 7 ${env}" >> ${testlist_cvar}
                     env=""
                 done
             else #test recursive exchange algorithms
@@ -185,6 +186,7 @@ for algo_name in ${algo_names}; do
                 echo "allred5 5 ${env}" >> ${testlist_cvar}
                 echo "allred6 4 ${env}" >> ${testlist_cvar}
                 echo "allred6 7 ${env}" >> ${testlist_cvar}
+                echo "p_allred 7 ${env}" >> ${testlist_cvar}
                 env=""
             fi
         done
@@ -210,6 +212,7 @@ for algo_name in ${algo_names}; do
         echo "allred5 5 ${env}" >> ${testlist_cvar}
         echo "allred6 4 ${env}" >> ${testlist_cvar}
         echo "allred6 7 ${env}" >> ${testlist_cvar}
+        echo "p_allred 7 ${env}" >> ${testlist_cvar}
         env=""
     fi
 done
