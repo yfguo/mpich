@@ -651,6 +651,20 @@ function MPIR_Ireduce_cdesc(sendbuf, recvbuf, count, datatype, op, root, comm, r
     integer(c_int) :: ierror
 end function MPIR_Ireduce_cdesc
 
+function MPIR_Reduce_init_cdesc(sendbuf, recvbuf, count, datatype, op, root, comm) &
+    bind(C, name="MPIR_Reduce_init_cdesc") result(ierror)
+    use, intrinsic :: iso_c_binding, only : c_int
+    use :: mpi_c_interface_types, only : c_Datatype, c_Op, c_Comm
+    implicit none
+    type(*), dimension(..), intent(in) :: sendbuf
+    type(*), dimension(..) :: recvbuf
+    integer(c_int), value, intent(in) :: count, root
+    integer(c_Datatype), value, intent(in) :: datatype
+    integer(c_Op), value, intent(in) :: op
+    integer(c_Comm), value, intent(in) :: comm
+    integer(c_int) :: ierror
+end function MPIR_Reduce_init_cdesc
+
 function MPIR_Reduce_local_cdesc(inbuf, inoutbuf, count, datatype, op) &
     bind(C, name="MPIR_Reduce_local_cdesc") result(ierror)
     use, intrinsic :: iso_c_binding, only : c_int

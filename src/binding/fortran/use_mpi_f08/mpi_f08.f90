@@ -1226,6 +1226,20 @@ interface MPI_Ireduce
     end subroutine MPI_Ireduce_f08ts
 end interface MPI_Ireduce
 
+interface MPIX_Reduce_init
+    subroutine MPIX_Reduce_init_f08ts(sendbuf, recvbuf, count, datatype, op, root, comm, ierror)
+        use :: mpi_f08_types, only : MPI_Datatype, MPI_Op, MPI_Comm
+        implicit none
+        type(*), dimension(..), intent(in) :: sendbuf
+        type(*), dimension(..) :: recvbuf
+        integer, intent(in) :: count, root
+        type(MPI_Datatype), intent(in) :: datatype
+        type(MPI_Op), intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, optional, intent(out) :: ierror
+    end subroutine MPIX_Reduce_init_f08ts
+end interface MPIX_Reduce_init
+
 interface MPI_Reduce_local
     subroutine MPI_Reduce_local_f08ts(inbuf, inoutbuf, count, datatype, op, ierror)
         use :: mpi_f08_types, only : MPI_Datatype, MPI_Op

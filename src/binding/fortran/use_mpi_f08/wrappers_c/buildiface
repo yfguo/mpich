@@ -126,6 +126,7 @@ my %bufpos = (
     "MPI_Recv" => [0, 1, 2],
     "MPI_Recv_init" => [0, 1, 2],
     "MPI_Reduce" => [0, -2, -2, 1, 2, 3],
+    "MPIX_Reduce_init" => [0, -2, -2, 1, 2, 3],
     "MPI_Reduce_local" => [0, -2, -2, 1, 2, 3],
     "MPI_Reduce_scatter_block" => [0, -2, -2, 1, 2, 3],
     "MPI_Reduce_scatter" => [0, -2, -2, 1, -2, -2],

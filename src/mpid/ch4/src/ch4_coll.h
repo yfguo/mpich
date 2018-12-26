@@ -1389,4 +1389,17 @@ MPL_STATIC_INLINE_PREFIX int MPID_Allreduce_init(const void *sendbuf, void *recv
     return mpi_errno;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPID_Reduce_init(const void *sendbuf, void *recvbuf, int count,
+                                              MPI_Datatype datatype, MPI_Op op, int root,
+                                              MPIR_Comm * comm_ptr, MPIR_Info * info_ptr,
+                                              MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    mpi_errno =
+        MPIR_Reduce_init(sendbuf, recvbuf, count, datatype, op, root, comm_ptr, info_ptr, request);
+
+    return mpi_errno;
+}
+
 #endif /* CH4_COLL_H_INCLUDED */

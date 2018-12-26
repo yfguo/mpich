@@ -912,6 +912,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_alltoallv %p %p %p %D %p %p %p %D %C:MPI_Alltoallv(sbuf=%p, scnts=%p, sdispls=%p, %D, rbuf=%p, rcnts=%p, rdispls=%p, datatype=%D, comm=%C) failed
 **mpi_reduce:MPI_Reduce failed
 **mpi_reduce %p %p %d %D %O %d %C:MPI_Reduce(sbuf=%p, rbuf=%p, count=%d, datatype=%D, op=%O, root=%d, comm=%C) failed
+**mpix_reduce_init:MPIX_Reduce_init failed
+**mpix_reduce_init %p %p %d %D %O %d %C %I %p:MPIX_Reduce_init(sendbuf=%p, recvbuf=%p, count=%d, %D, %0, %d, %C, %I, request=%p) failed
 **mpi_op_create:MPI_Op_create failed
 **mpi_op_create %p %d %p:MPI_Op_create(fn=%p, commute=%d, op=%p) failed
 **mpi_op_free:MPI_Op_free failed

@@ -1573,6 +1573,9 @@ int MPIX_Bcast_init(void *buffer, int count, MPI_Datatype datatype, int root,
 int MPIX_Allreduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                         MPI_Op op, MPI_Comm comm, MPI_Info info, MPI_Request* request )
                         MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,4) MPICH_ATTR_POINTER_WITH_TYPE_TAG(2,4)  MPICH_API_PUBLIC;
+int MPIX_Reduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+                     MPI_Op op, int root, MPI_Comm comm, MPI_Info info, MPI_Request* request )
+                     MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,4) MPICH_ATTR_POINTER_WITH_TYPE_TAG(2,4)  MPICH_API_PUBLIC;
 
 /* End Prototypes */
 #endif /* MPICH_SUPPRESS_PROTOTYPES */
@@ -2235,6 +2238,9 @@ int PMPIX_Bcast_init( void *buffer, int count, MPI_Datatype datatype, int root,
 int PMPIX_Allreduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                          MPI_Op op, MPI_Comm comm, MPI_Info info, MPI_Request* request )
                          MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,4) MPICH_ATTR_POINTER_WITH_TYPE_TAG(2,4)  MPICH_API_PUBLIC;
+int PMPIX_Reduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+                      MPI_Op op, int root, MPI_Comm comm, MPI_Info info, MPI_Request* request )
+                      MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,4) MPICH_ATTR_POINTER_WITH_TYPE_TAG(2,4)  MPICH_API_PUBLIC;
 
 #endif  /* MPI_BUILD_PROFILING */
 /* End of MPI bindings */
