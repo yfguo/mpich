@@ -95,6 +95,7 @@ for algo_name in ${algo_names}; do
                 echo "reduce 10 arg=-evenmemtype=device arg=-oddmemtype=device ${env}" >> ${testlist_gpu}
                 echo "red3 10 ${env}" >> ${testlist_cvar}
                 echo "red4 10 ${env}" >> ${testlist_cvar}
+                echo "p_red 5 ${env}" >> ${testlist_cvar}
                 env=""
             done
         done
@@ -113,6 +114,7 @@ for algo_name in ${algo_names}; do
         echo "reduce 10 arg=-evenmemtype=device arg=-oddmemtype=device ${env}" >> ${testlist_gpu}
         echo "red3 10 ${env}" >> ${testlist_cvar}
         echo "red4 10 ${env}" >> ${testlist_cvar}
+        echo "p_red 5 ${env}" >> ${testlist_cvar}
         env=""
     fi
 done

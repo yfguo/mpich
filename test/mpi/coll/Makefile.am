@@ -84,6 +84,7 @@ noinst_PROGRAMS =      \
     p_allred           \
     p_bcast            \
     p_bcast2           \
+    p_red              \
     red3               \
     red4               \
     red_scat_block     \

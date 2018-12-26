@@ -178,3 +178,4 @@ ring_neighbor_alltoall 1
 p_bcast 4 strict=false
 p_bcast2 8 strict=false
 p_allred 4 strict=false
+p_red 4 strict=false
