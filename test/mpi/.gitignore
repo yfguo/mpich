@@ -140,6 +140,7 @@
 /coll/p_bcast2
 /coll/p_allred
 /coll/p_red
+/coll/p_alltoall
 /coll/red3
 /coll/red4
 /coll/red_scat_block

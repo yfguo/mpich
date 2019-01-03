@@ -419,6 +419,7 @@ for algo_name in ${algo_names}; do
     if [ "${algo_name}" != "gentran_scattered" ]; then
         env="${testing_env} env=MPIR_CVAR_IALLTOALL_INTRA_ALGORITHM=${algo_name}"
         echo "alltoall1 8 ${env}" >> ${testlist_cvar}
+        echo "p_alltoall 8 ${env}" >> ${testlist_cvar}
         env=""
     else
         for task in ${outstandingtasks}; do
@@ -428,6 +429,7 @@ for algo_name in ${algo_names}; do
                 env="${env} env=MPIR_CVAR_IALLTOALL_SCATTERED_OUTSTANDING_TASKS=${task}"
 
                 echo "alltoall1 8 ${env}" >> ${testlist_cvar}
+                echo "p_alltoall 8 ${env}" >> ${testlist_cvar}
                 env=""
             done
         done
@@ -445,6 +447,8 @@ for algo_name in ${algo_names}; do
 
         echo "alltoall1 8 ${env} env=MPIR_CVAR_IALLTOALL_BRUCKS_BUFFER_PER_NBR=0" >> ${testlist_cvar}
         echo "alltoall1 8 ${env} env=MPIR_CVAR_IALLTOALL_BRUCKS_BUFFER_PER_NBR=1" >> ${testlist_cvar}
+        echo "p_alltoall 8 ${env} env=MPIR_CVAR_IALLTOALL_BRUCKS_BUFFER_PER_NBR=0" >> ${testlist_cvar}
+        echo "p_alltoall 8 ${env} env=MPIR_CVAR_IALLTOALL_BRUCKS_BUFFER_PER_NBR=1" >> ${testlist_cvar}
         env=""
     done
 done
