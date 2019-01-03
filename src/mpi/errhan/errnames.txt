@@ -908,6 +908,8 @@ is too big (> MPIU_SHMW_GHND_SZ)
 **mpi_allgatherv %p %d %D %p %p %p %D %C:MPI_Allgatherv(sbuf=%p, scount=%d, %D, rbuf=%p, rcounts=%p, displs=%p, datatype=%D, comm=%C) failed
 **mpi_alltoall:MPI_Alltoall failed
 **mpi_alltoall %p %d %D %p %d %D %C:MPI_Alltoall(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, datatype=%D, comm=%C) failed
+**mpix_alltoall_init:MPIX_Alltoall_init failed
+**mpix_alltoall_init %p %d %D %p %d %D %C %I %p:MPIX_Alltoall_init(sbuf=%p, scount=%d, %D, rbuf=%p, rcount=%d, datatype=%D, comm=%C, %I, request=%p) failed
 **mpi_alltoallv:MPI_Alltoallv failed
 **mpi_alltoallv %p %p %p %D %p %p %p %D %C:MPI_Alltoallv(sbuf=%p, scnts=%p, sdispls=%p, %D, rbuf=%p, rcnts=%p, rdispls=%p, datatype=%D, comm=%C) failed
 **mpi_reduce:MPI_Reduce failed

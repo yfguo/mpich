@@ -961,6 +961,20 @@ interface MPI_Ialltoall
     end subroutine MPI_Ialltoall_f08ts
 end interface MPI_Ialltoall
 
+interface MPIX_Alltoall_init
+    subroutine MPIX_Alltoall_init_f08ts(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &
+                                 comm, ierror)
+        use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm
+        implicit none
+        type(*), dimension(..), intent(in) :: sendbuf
+        type(*), dimension(..) :: recvbuf
+        integer, intent(in) :: sendcount, recvcount
+        type(MPI_Datatype), intent(in) :: sendtype, recvtype
+        type(MPI_Comm), intent(in) :: comm
+        integer, optional, intent(out) :: ierror
+    end subroutine MPIX_Alltoall_init_f08ts
+end interface MPIX_Alltoall_init
+
 interface MPI_Alltoallv
     subroutine MPI_Alltoallv_f08ts(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, &
                                   rdispls, recvtype, comm, ierror)

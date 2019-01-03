@@ -127,6 +127,12 @@ EXPORTS
 	mpix_reduce_init__=pmpix_reduce_init__
 	_mpix_reduce_init_=pmpix_reduce_init__
 	mpix_reduce_init_=pmpix_reduce_init__
+	pmpix_alltoall_init__
+	pmpix_alltoall_init_=pmpix_alltoall_init__
+	_pmpix_alltoall_init_=pmpix_alltoall_init__
+	mpix_alltoall_init__=pmpix_alltoall_init__
+	_mpix_alltoall_init_=pmpix_alltoall_init__
+	mpix_alltoall_init_=pmpix_alltoall_init__
 	pmpi_bsend__
 	pmpi_bsend_=pmpi_bsend__
 	_pmpi_bsend_=pmpi_bsend__

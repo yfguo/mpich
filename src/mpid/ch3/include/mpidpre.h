@@ -630,6 +630,10 @@ int MPID_Reduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype
                      MPI_Op op, int root, MPIR_Comm *comm_ptr, MPIR_Info* info_ptr,
                      MPIR_Request **request);
 
+int MPID_Alltoall_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                       void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                       MPIR_Comm *comm_ptr, MPIR_Info* info_ptr, MPIR_Request** request, MPIR_Errflag_t * errflag);
+
 int MPID_Probe(int, int, MPIR_Comm *, int, MPI_Status *);
 int MPID_Iprobe(int, int, MPIR_Comm *, int, int *, MPI_Status *);
 
