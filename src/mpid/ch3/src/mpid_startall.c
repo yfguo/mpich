@@ -323,3 +323,49 @@ int MPID_Bcast_init( void *buffer, int count, MPI_Datatype datatype, int root,
   fn_fail:
     goto fn_exit;
 }
+
+int MPID_Alltoall_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                       void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                       MPIR_Comm *comm_ptr, MPIR_Info* info_ptr, MPIR_Request** request, MPIR_Errflag_t * errflag)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ALLTOALL_INIT);
+
+    *errflag = MPIR_ERR_OTHER;
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**notimpl" );
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ALLTOALL_INIT);
+    return mpi_errno;
+}
+
+
+int MPID_Allreduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op,
+               MPIR_Comm *comm_ptr, MPIR_Info* info_ptr, MPIR_Request **request)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ALLREDUCE_INIT);
+
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**notimpl" );
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ALLREDUCE_INIT);
+    return mpi_errno;
+}
+
+
+
+int MPID_Reduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+                     MPI_Op op, int root, MPIR_Comm *comm_ptr, MPIR_Info* info_ptr,
+                     MPIR_Request **request)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REDUCE_INIT);
+
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**notimpl" );
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_REDUCE_INIT);
+    return mpi_errno;
+}
+
