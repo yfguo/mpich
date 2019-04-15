@@ -97,8 +97,8 @@ int MPIDI_Comm_split_type(MPIR_Comm * user_comm_ptr, int split_type, int key, MP
     MPIR_Comm *comm_ptr = NULL;
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_COMM_SPLIT_TYPE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_COMM_SPLIT_TYPE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_COMM_NAMECHANGE_SPLIT_TYPE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_COMM_NAMECHANGE_SPLIT_TYPE);
 
     mpi_errno = MPIR_Comm_split_impl(user_comm_ptr, split_type == MPI_UNDEFINED ? MPI_UNDEFINED : 0,
                                      key, &comm_ptr);
@@ -124,7 +124,7 @@ int MPIDI_Comm_split_type(MPIR_Comm * user_comm_ptr, int split_type, int key, MP
   fn_exit:
     if (comm_ptr)
         MPIR_Comm_free_impl(comm_ptr);
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_COMM_SPLIT_TYPE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_COMM_NAMECHANGE_SPLIT_TYPE);
     return mpi_errno;
 
     /* --BEGIN ERROR HANDLING-- */
@@ -145,42 +145,46 @@ int MPID_Comm_create_hook(MPIR_Comm * comm)
     if (comm != MPIR_Process.comm_world && comm != MPIR_Process.comm_self) {
         MPIDI_comm_create_rank_map(comm);
         /* add ref to avts */
-        switch (MPIDI_COMM(comm, map).mode) {
+        switch (MPIDI_COMM_NAMECHANGE(comm, map).mode) {
             case MPIDI_RANK_MAP_NONE:
                 break;
             case MPIDI_RANK_MAP_MLUT:
                 max_n_avts = MPIDIU_get_max_n_avts();
                 uniq_avtids = (int *) MPL_malloc(max_n_avts * sizeof(int), MPL_MEM_ADDRESS);
                 memset(uniq_avtids, 0, max_n_avts * sizeof(int));
-                for (i = 0; i < MPIDI_COMM(comm, map).size; i++) {
-                    if (uniq_avtids[MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid] == 0) {
-                        uniq_avtids[MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid] = 1;
-                        MPIDIU_avt_add_ref(MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid);
+                for (i = 0; i < MPIDI_COMM_NAMECHANGE(comm, map).size; i++) {
+                    if (uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.gpid[i].avtid] == 0) {
+                        uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.gpid[i].avtid] = 1;
+                        MPIDIU_avt_add_ref(MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.
+                                           gpid[i].avtid);
                     }
                 }
                 MPL_free(uniq_avtids);
                 break;
             default:
-                MPIDIU_avt_add_ref(MPIDI_COMM(comm, map).avtid);
+                MPIDIU_avt_add_ref(MPIDI_COMM_NAMECHANGE(comm, map).avtid);
         }
 
-        switch (MPIDI_COMM(comm, local_map).mode) {
+        switch (MPIDI_COMM_NAMECHANGE(comm, local_map).mode) {
             case MPIDI_RANK_MAP_NONE:
                 break;
             case MPIDI_RANK_MAP_MLUT:
                 max_n_avts = MPIDIU_get_max_n_avts();
                 uniq_avtids = (int *) MPL_malloc(max_n_avts * sizeof(int), MPL_MEM_ADDRESS);
                 memset(uniq_avtids, 0, max_n_avts * sizeof(int));
-                for (i = 0; i < MPIDI_COMM(comm, local_map).size; i++) {
-                    if (uniq_avtids[MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid] == 0) {
-                        uniq_avtids[MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid] = 1;
-                        MPIDIU_avt_add_ref(MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid);
+                for (i = 0; i < MPIDI_COMM_NAMECHANGE(comm, local_map).size; i++) {
+                    if (uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.mlut.gpid[i].avtid]
+                        == 0) {
+                        uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.mlut.
+                                    gpid[i].avtid] = 1;
+                        MPIDIU_avt_add_ref(MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.
+                                           mlut.gpid[i].avtid);
                     }
                 }
                 MPL_free(uniq_avtids);
                 break;
             default:
-                MPIDIU_avt_add_ref(MPIDI_COMM(comm, local_map).avtid);
+                MPIDIU_avt_add_ref(MPIDI_COMM_NAMECHANGE(comm, local_map).avtid);
         }
     }
 
@@ -210,57 +214,61 @@ int MPID_Comm_free_hook(MPIR_Comm * comm)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_COMM_FREE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_COMM_FREE_HOOK);
     /* release ref to avts */
-    switch (MPIDI_COMM(comm, map).mode) {
+    switch (MPIDI_COMM_NAMECHANGE(comm, map).mode) {
         case MPIDI_RANK_MAP_NONE:
             break;
         case MPIDI_RANK_MAP_MLUT:
             max_n_avts = MPIDIU_get_max_n_avts();
             uniq_avtids = (int *) MPL_malloc(max_n_avts * sizeof(int), MPL_MEM_ADDRESS);
             memset(uniq_avtids, 0, max_n_avts * sizeof(int));
-            for (i = 0; i < MPIDI_COMM(comm, map).size; i++) {
-                if (uniq_avtids[MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid] == 0) {
-                    uniq_avtids[MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid] = 1;
-                    MPIDIU_avt_release_ref(MPIDI_COMM(comm, map).irreg.mlut.gpid[i].avtid);
+            for (i = 0; i < MPIDI_COMM_NAMECHANGE(comm, map).size; i++) {
+                if (uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.gpid[i].avtid] == 0) {
+                    uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.gpid[i].avtid] = 1;
+                    MPIDIU_avt_release_ref(MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.
+                                           gpid[i].avtid);
                 }
             }
             MPL_free(uniq_avtids);
             break;
         default:
-            MPIDIU_avt_release_ref(MPIDI_COMM(comm, map).avtid);
+            MPIDIU_avt_release_ref(MPIDI_COMM_NAMECHANGE(comm, map).avtid);
     }
 
-    switch (MPIDI_COMM(comm, local_map).mode) {
+    switch (MPIDI_COMM_NAMECHANGE(comm, local_map).mode) {
         case MPIDI_RANK_MAP_NONE:
             break;
         case MPIDI_RANK_MAP_MLUT:
             max_n_avts = MPIDIU_get_max_n_avts();
             uniq_avtids = (int *) MPL_malloc(max_n_avts * sizeof(int), MPL_MEM_ADDRESS);
             memset(uniq_avtids, 0, max_n_avts * sizeof(int));
-            for (i = 0; i < MPIDI_COMM(comm, local_map).size; i++) {
-                if (uniq_avtids[MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid] == 0) {
-                    uniq_avtids[MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid] = 1;
-                    MPIDIU_avt_release_ref(MPIDI_COMM(comm, local_map).irreg.mlut.gpid[i].avtid);
+            for (i = 0; i < MPIDI_COMM_NAMECHANGE(comm, local_map).size; i++) {
+                if (uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.mlut.gpid[i].avtid] ==
+                    0) {
+                    uniq_avtids[MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.mlut.gpid[i].avtid] =
+                        1;
+                    MPIDIU_avt_release_ref(MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.
+                                           mlut.gpid[i].avtid);
                 }
             }
             MPL_free(uniq_avtids);
             break;
         default:
-            MPIDIU_avt_release_ref(MPIDI_COMM(comm, local_map).avtid);
+            MPIDIU_avt_release_ref(MPIDI_COMM_NAMECHANGE(comm, local_map).avtid);
     }
 
-    if (MPIDI_COMM(comm, map).mode == MPIDI_RANK_MAP_LUT
-        || MPIDI_COMM(comm, map).mode == MPIDI_RANK_MAP_LUT_INTRA) {
-        MPIDIU_release_lut(MPIDI_COMM(comm, map).irreg.lut.t);
+    if (MPIDI_COMM_NAMECHANGE(comm, map).mode == MPIDI_RANK_MAP_LUT
+        || MPIDI_COMM_NAMECHANGE(comm, map).mode == MPIDI_RANK_MAP_LUT_INTRA) {
+        MPIDIU_release_lut(MPIDI_COMM_NAMECHANGE(comm, map).irreg.lut.t);
     }
-    if (MPIDI_COMM(comm, local_map).mode == MPIDI_RANK_MAP_LUT
-        || MPIDI_COMM(comm, local_map).mode == MPIDI_RANK_MAP_LUT_INTRA) {
-        MPIDIU_release_lut(MPIDI_COMM(comm, local_map).irreg.lut.t);
+    if (MPIDI_COMM_NAMECHANGE(comm, local_map).mode == MPIDI_RANK_MAP_LUT
+        || MPIDI_COMM_NAMECHANGE(comm, local_map).mode == MPIDI_RANK_MAP_LUT_INTRA) {
+        MPIDIU_release_lut(MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.lut.t);
     }
-    if (MPIDI_COMM(comm, map).mode == MPIDI_RANK_MAP_MLUT) {
-        MPIDIU_release_mlut(MPIDI_COMM(comm, map).irreg.mlut.t);
+    if (MPIDI_COMM_NAMECHANGE(comm, map).mode == MPIDI_RANK_MAP_MLUT) {
+        MPIDIU_release_mlut(MPIDI_COMM_NAMECHANGE(comm, map).irreg.mlut.t);
     }
-    if (MPIDI_COMM(comm, local_map).mode == MPIDI_RANK_MAP_MLUT) {
-        MPIDIU_release_mlut(MPIDI_COMM(comm, local_map).irreg.mlut.t);
+    if (MPIDI_COMM_NAMECHANGE(comm, local_map).mode == MPIDI_RANK_MAP_MLUT) {
+        MPIDIU_release_mlut(MPIDI_COMM_NAMECHANGE(comm, local_map).irreg.mlut.t);
     }
 
     mpi_errno = MPIDI_NM_mpi_comm_free_hook(comm);
