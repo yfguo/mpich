@@ -193,7 +193,7 @@ static int set_runtime_configurations(void)
         MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER,
                              "**ch4|invalid_mt_model", "**ch4|invalid_mt_model %s",
                              MPIR_CVAR_CH4_MT_MODEL);
-    MPIDI_global.settings.mt_model = mt;
+    MPIDI_global_namechange.settings.mt_model = mt;
 #else
     /* Static configuration - no runtime selection */
     if (strcmp(MPIR_CVAR_CH4_MT_MODEL, "") != 0)
@@ -235,13 +235,14 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
 
 #ifdef HAVE_SIGNAL
     /* install signal handler for process failure notifications from hydra */
-    MPIDI_global.sigusr1_count = 0;
-    MPIDI_global.my_sigusr1_count = 0;
-    MPIDI_global.prev_sighandler = signal(SIGUSR1, MPIDI_sigusr1_handler);
-    MPIR_ERR_CHKANDJUMP1(MPIDI_global.prev_sighandler == SIG_ERR, mpi_errno, MPI_ERR_OTHER,
-                         "**signal", "**signal %s", MPIR_Strerror(errno));
-    if (MPIDI_global.prev_sighandler == SIG_IGN || MPIDI_global.prev_sighandler == SIG_DFL)
-        MPIDI_global.prev_sighandler = NULL;
+    MPIDI_global_namechange.sigusr1_count = 0;
+    MPIDI_global_namechange.my_sigusr1_count = 0;
+    MPIDI_global_namechange.prev_sighandler = signal(SIGUSR1, MPIDI_sigusr1_handler);
+    MPIR_ERR_CHKANDJUMP1(MPIDI_global_namechange.prev_sighandler == SIG_ERR, mpi_errno,
+                         MPI_ERR_OTHER, "**signal", "**signal %s", MPIR_Strerror(errno));
+    if (MPIDI_global_namechange.prev_sighandler == SIG_IGN ||
+        MPIDI_global_namechange.prev_sighandler == SIG_DFL)
+        MPIDI_global_namechange.prev_sighandler = NULL;
 #endif
 
     choose_netmod();
@@ -252,8 +253,8 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
         MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**pmi_init", "**pmi_init %d", pmi_errno);
     }
 
-    MPIDI_global.jobid = (char *) MPL_malloc(MPIDI_MAX_JOBID_LEN, MPL_MEM_OTHER);
-    pmi_errno = PMI2_Job_GetId(MPIDI_global.jobid, MPIDI_MAX_JOBID_LEN);
+    MPIDI_global_namechange.jobid = (char *) MPL_malloc(MPIDI_MAX_JOBID_LEN, MPL_MEM_OTHER);
+    pmi_errno = PMI2_Job_GetId(MPIDI_global_namechange.jobid, MPIDI_MAX_JOBID_LEN);
     if (pmi_errno != PMI2_SUCCESS) {
         MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**pmi_job_getid",
                              "**pmi_job_getid %d", pmi_errno);
@@ -319,8 +320,8 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
                              "**pmi_kvs_get_name_length_max %d", pmi_errno);
     }
 
-    MPIDI_global.jobid = (char *) MPL_malloc(max_pmi_name_length, MPL_MEM_OTHER);
-    pmi_errno = PMI_KVS_Get_my_name(MPIDI_global.jobid, max_pmi_name_length);
+    MPIDI_global_namechange.jobid = (char *) MPL_malloc(max_pmi_name_length, MPL_MEM_OTHER);
+    pmi_errno = PMI_KVS_Get_my_name(MPIDI_global_namechange.jobid, max_pmi_name_length);
     if (pmi_errno != PMI_SUCCESS) {
         MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**pmi_kvs_get_my_name",
                              "**pmi_kvs_get_my_name %d", pmi_errno);
@@ -331,12 +332,12 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
     MPID_Thread_mutex_create(&MPIDIU_THREAD_PROGRESS_HOOK_MUTEX, &thr_err);
     MPID_Thread_mutex_create(&MPIDIU_THREAD_UTIL_MUTEX, &thr_err);
 
-    MPID_Thread_mutex_create(&MPIDI_global.vci_lock, &mpi_errno);
+    MPID_Thread_mutex_create(&MPIDI_global_namechange.vci_lock, &mpi_errno);
     if (mpi_errno != MPI_SUCCESS) {
         MPIR_ERR_POPFATAL(mpi_errno);
     }
 #if defined(MPIDI_CH4_USE_WORK_QUEUES)
-    MPIDI_workq_init(&MPIDI_global.workqueue);
+    MPIDI_workq_init(&MPIDI_global_namechange.workqueue);
 #endif /* #if defined(MPIDI_CH4_USE_WORK_QUEUES) */
 
     if (MPIR_CVAR_CH4_RUNTIME_CONF_DEBUG && rank == 0)
@@ -408,23 +409,26 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
     }
     mpi_errno = MPIDIU_build_nodemap(MPIR_Process.comm_world->rank, MPIR_Process.comm_world,
                                      MPIR_Process.comm_world->local_size,
-                                     MPIDI_global.node_map[0], &MPIDI_global.max_node_id);
+                                     MPIDI_global_namechange.node_map[0],
+                                     &MPIDI_global_namechange.max_node_id);
     if (mpi_errno)
         MPIR_ERR_POP(mpi_errno);
 
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
-                    (MPL_DBG_FDEST, "MPIDI_global.max_node_id = %d", MPIDI_global.max_node_id));
+                    (MPL_DBG_FDEST, "MPIDI_global_namechange.max_node_id = %d",
+                     MPIDI_global_namechange.max_node_id));
 
     for (i = 0; i < MPIR_Process.comm_world->local_size; i++) {
         MPIDI_av_table0->table[i].is_local =
-            (MPIDI_global.node_map[0][i] ==
-             MPIDI_global.node_map[0][MPIR_Process.comm_world->rank]) ? 1 : 0;
+            (MPIDI_global_namechange.node_map[0][i] ==
+             MPIDI_global_namechange.node_map[0][MPIR_Process.comm_world->rank]) ? 1 : 0;
         MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                         (MPL_DBG_FDEST, "WORLD RANK %d %s local", i,
                          MPIDI_av_table0->table[i].is_local ? "is" : "is not"));
         MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
-                        (MPL_DBG_FDEST, "Node id (i) (me) %d %d", MPIDI_global.node_map[0][i],
-                         MPIDI_global.node_map[0][MPIR_Process.comm_world->rank]));
+                        (MPL_DBG_FDEST, "Node id (i) (me) %d %d",
+                         MPIDI_global_namechange.node_map[0][i],
+                         MPIDI_global_namechange.node_map[0][MPIR_Process.comm_world->rank]));
     }
 #endif
 
@@ -455,8 +459,8 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
     MPIR_Group_init();
 
     /* Override split_type */
-    MPIDI_global.MPIR_Comm_fns_store.split_type = MPIDI_Comm_split_type;
-    MPIR_Comm_fns = &MPIDI_global.MPIR_Comm_fns_store;
+    MPIDI_global_namechange.MPIR_Comm_fns_store.split_type = MPIDI_Comm_split_type;
+    MPIR_Comm_fns = &MPIDI_global_namechange.MPIR_Comm_fns_store;
 
     MPIR_Process.attrs.appnum = appnum;
     MPIR_Process.attrs.wtime_is_global = 1;
@@ -486,7 +490,7 @@ int MPID_Init(int *argc, char ***argv, int requested, int *provided, int *has_ar
 
     *has_args = TRUE;
     *has_env = TRUE;
-    MPIDI_global.is_initialized = 0;
+    MPIDI_global_namechange.is_initialized = 0;
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_INIT);
@@ -499,7 +503,7 @@ int MPID_InitCompleted(void)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_INITCOMPLETED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_INITCOMPLETED);
-    MPIDI_global.is_initialized = 1;
+    MPIDI_global_namechange.is_initialized = 1;
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_INITCOMPLETED);
     return MPI_SUCCESS;
 }
@@ -529,7 +533,7 @@ int MPID_Finalize(void)
     }
 
     MPIDIU_avt_destroy();
-    MPL_free(MPIDI_global.jobid);
+    MPL_free(MPIDI_global_namechange.jobid);
 
 #ifdef USE_PMIX_API
     PMIx_Finalize(NULL, 0);
@@ -552,7 +556,7 @@ int MPID_CS_finalize(void)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_CS_FINALIZE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_CS_FINALIZE);
 
-    MPID_Thread_mutex_destroy(&MPIDI_global.vci_lock, &thr_err);
+    MPID_Thread_mutex_destroy(&MPIDI_global_namechange.vci_lock, &thr_err);
     MPIR_Assert(thr_err == 0);
     MPID_Thread_mutex_destroy(&MPIDIU_THREAD_PROGRESS_MUTEX, &thr_err);
     MPIR_Assert(thr_err == 0);
@@ -625,30 +629,31 @@ int MPID_Get_processor_name(char *name, int namelen, int *resultlen)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_GET_PROCESSOR_NAME);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_GET_PROCESSOR_NAME);
 
-    if (!MPIDI_global.pname_set) {
+    if (!MPIDI_global_namechange.pname_set) {
 #ifdef HAVE_GETHOSTNAME
 
-        if (gethostname(MPIDI_global.pname, MPI_MAX_PROCESSOR_NAME) == 0)
-            MPIDI_global.pname_len = (int) strlen(MPIDI_global.pname);
+        if (gethostname(MPIDI_global_namechange.pname, MPI_MAX_PROCESSOR_NAME) == 0)
+            MPIDI_global_namechange.pname_len = (int) strlen(MPIDI_global_namechange.pname);
 
 #elif defined(HAVE_SYSINFO)
 
-        if (sysinfo(SI_HOSTNAME, MPIDI_global.pname, MPI_MAX_PROCESSOR_NAME) == 0)
-            MPIDI_global.pname_len = (int) strlen(MPIDI_global.pname);
+        if (sysinfo(SI_HOSTNAME, MPIDI_global_namechange.pname, MPI_MAX_PROCESSOR_NAME) == 0)
+            MPIDI_global_namechange.pname_len = (int) strlen(MPIDI_global_namechange.pname);
 
 #else
-        MPL_snprintf(MPIDI_global.pname, MPI_MAX_PROCESSOR_NAME, "%d",
+        MPL_snprintf(MPIDI_global_namechange.pname, MPI_MAX_PROCESSOR_NAME, "%d",
                      MPIR_Process.comm_world->rank);
-        MPIDI_global.pname_len = (int) strlen(MPIDI_global.pname);
+        MPIDI_global_namechange.pname_len = (int) strlen(MPIDI_global_namechange.pname);
 #endif
-        MPIDI_global.pname_set = 1;
+        MPIDI_global_namechange.pname_set = 1;
     }
 
-    MPIR_ERR_CHKANDJUMP(MPIDI_global.pname_len <= 0, mpi_errno, MPI_ERR_OTHER, "**procnamefailed");
-    MPL_strncpy(name, MPIDI_global.pname, namelen);
+    MPIR_ERR_CHKANDJUMP(MPIDI_global_namechange.pname_len <= 0, mpi_errno, MPI_ERR_OTHER,
+                        "**procnamefailed");
+    MPL_strncpy(name, MPIDI_global_namechange.pname, namelen);
 
     if (resultlen)
-        *resultlen = MPIDI_global.pname_len;
+        *resultlen = MPIDI_global_namechange.pname_len;
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_GET_PROCESSOR_NAME);
