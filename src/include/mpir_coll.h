@@ -47,6 +47,9 @@ int MPIR_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype, vo
 int MPIR_Allgather_impl(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
                         int recvcount, MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
                         MPIR_Errflag_t * errflag);
+int MPIR_Allgather_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                        int recvcount, MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+                        MPIR_Info * info, MPIR_Request ** request, MPIR_Errflag_t * errflag);
 
 /* intracomm-only functions */
 int MPIR_Allgather_allcomm_auto(const void *sendbuf, int sendcount, MPI_Datatype sendtype,

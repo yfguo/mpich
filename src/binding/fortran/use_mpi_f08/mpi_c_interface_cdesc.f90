@@ -335,6 +335,19 @@ function MPIR_Iallgather_cdesc(sendbuf, sendcount, sendtype, recvbuf, recvcount,
     integer(c_int) :: ierror
 end function MPIR_Iallgather_cdesc
 
+function MPIR_Allgather_init_cdesc(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm) &
+    bind(C, name="MPIR_Allgather_init_cdesc") result(ierror)
+    use, intrinsic :: iso_c_binding, only : c_int
+    use :: mpi_c_interface_types, only : c_Datatype, c_Comm
+    implicit none
+    type(*), dimension(..), intent(in) :: sendbuf
+    type(*), dimension(..) :: recvbuf
+    integer(c_int), value, intent(in) :: sendcount, recvcount
+    integer(c_Datatype), value, intent(in) :: sendtype, recvtype
+    integer(c_Comm), value, intent(in) :: comm
+    integer(c_int) :: ierror
+end function MPIR_Allgather_init_cdesc
+
 function MPIR_Allgatherv_cdesc(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm) &
     bind(C, name="MPIR_Allgatherv_cdesc") result(ierror)
     use, intrinsic :: iso_c_binding, only : c_int

@@ -133,6 +133,12 @@ EXPORTS
 	mpix_alltoall_init__=pmpix_alltoall_init__
 	_mpix_alltoall_init_=pmpix_alltoall_init__
 	mpix_alltoall_init_=pmpix_alltoall_init__
+	pmpix_allgather_init__
+	pmpix_allgather_init_=pmpix_allgather_init__
+	_pmpix_allgather_init_=pmpix_allgather_init__
+	mpix_allgather_init__=pmpix_allgather_init__
+	_mpix_allgather_init_=pmpix_allgather_init__
+	mpix_allgather_init_=pmpix_allgather_init__
 	pmpi_bsend__
 	pmpi_bsend_=pmpi_bsend__
 	_pmpi_bsend_=pmpi_bsend__

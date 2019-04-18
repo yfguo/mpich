@@ -369,3 +369,17 @@ int MPID_Reduce_init(const void *sendbuf, void *recvbuf, int count, MPI_Datatype
     return mpi_errno;
 }
 
+int MPID_Allgather_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                        int recvcount, MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+                        MPIR_Info * info_ptr, MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ALLGATHER_INIT);
+
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**notimpl");
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ALLGATHER_INIT);
+    return mpi_errno;
+}
+

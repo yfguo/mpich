@@ -36,6 +36,7 @@ use Data::Dumper;
 my %bufpos = (
     "MPI_Accumulate" => [0,  1,  2],
     "MPI_Allgather" => [0,  1,  2, 3,  4,  5],
+    "MPIX_Allgather_init" => [0,  1,  2, 3,  4,  5],
     "MPI_Allgatherv" => [0,  1,  2, 3, -1, -1],
     "MPI_Allreduce" => [0, -1, -1, 1,  2,  3],
     "MPIX_Allreduce_init" => [0, -1, -1, 1,  2,  3],
