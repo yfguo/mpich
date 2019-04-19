@@ -638,6 +638,10 @@ int MPID_Allgather_init(const void *sendbuf, int sendcount, MPI_Datatype sendtyp
                         void *recvbuf, int recvcount, MPI_Datatype recvtype,
                         MPIR_Comm *comm_ptr, MPIR_Info* info_ptr, MPIR_Request** request, MPIR_Errflag_t * errflag);
 
+int MPID_Allgatherv_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                        void *recvbuf, const int *recvcounts, const int *displs,  MPI_Datatype recvtype,
+                        MPIR_Comm *comm_ptr, MPIR_Info* info_ptr, MPIR_Request** request, MPIR_Errflag_t * errflag);
+
 int MPID_Probe(int, int, MPIR_Comm *, int, MPI_Status *);
 int MPID_Iprobe(int, int, MPIR_Comm *, int, int *, MPI_Status *);
 

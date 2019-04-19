@@ -1437,4 +1437,22 @@ MPL_STATIC_INLINE_PREFIX int MPID_Allgather_init(const void *sendbuf, int sendco
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ALLGATHER_INIT);
     return mpi_errno;
 }
+
+MPL_STATIC_INLINE_PREFIX int MPID_Allgatherv_init(const void *sendbuf, int sendcount,
+                                                  MPI_Datatype sendtype, void *recvbuf,
+                                                  const int *recvcounts, const int *displs,
+                                                  MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+                                                  MPIR_Info * info_ptr, MPIR_Request ** request,
+                                                  MPIR_Errflag_t * errflag)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ALLGATHERV_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_ALLGATHERV_INIT);
+
+    mpi_errno =
+        MPIR_Allgatherv_init(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype,
+                             comm_ptr, info_ptr, request, errflag);
+
+    return mpi_errno;
+}
 #endif /* CH4_COLL_H_INCLUDED */

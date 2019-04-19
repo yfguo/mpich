@@ -139,6 +139,12 @@ EXPORTS
 	mpix_allgather_init__=pmpix_allgather_init__
 	_mpix_allgather_init_=pmpix_allgather_init__
 	mpix_allgather_init_=pmpix_allgather_init__
+	pmpix_allgatherv_init__
+	pmpix_allgatherv_init_=pmpix_allgatherv_init__
+	_pmpix_allgatherv_init_=pmpix_allgatherv_init__
+	mpix_allgatherv_init__=pmpix_allgatherv_init__
+	_mpix_allgatherv_init_=pmpix_allgatherv_init__
+	mpix_allgatherv_init_=pmpix_allgatherv_init__
 	pmpi_bsend__
 	pmpi_bsend_=pmpi_bsend__
 	_pmpi_bsend_=pmpi_bsend__

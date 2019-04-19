@@ -383,3 +383,18 @@ int MPID_Allgather_init(const void *sendbuf, int sendcount, MPI_Datatype sendtyp
     return mpi_errno;
 }
 
+int MPID_Allgatherv_init(const void *sendbuf, int sendcount,
+                         MPI_Datatype sendtype, void *recvbuf,
+                         int recvcount, MPI_Datatype recvtype,
+                         MPIR_Comm * comm_ptr, MPIR_Info * info_ptr,
+                         MPIR_Request ** request, MPIR_Errflag_t * errflag)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ALLGATHERV_INIT);
+
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**notimpl");
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ALLGATHERV_INIT);
+    return mpi_errno;
+}

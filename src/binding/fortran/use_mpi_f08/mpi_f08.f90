@@ -885,6 +885,23 @@ interface MPI_Allgatherv
     end subroutine MPI_Allgatherv_f08ts
 end interface MPI_Allgatherv
 
+interface MPIX_Allgatherv_init
+    subroutine MPIX_Allgatherv_init_f08ts(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, &
+                                         recvtype, comm, info, request, ierror)
+        use :: mpi_f08_types, only : MPI_Datatype, MPI_Comm, MPI_Info, MPI_Request
+        implicit none
+        type(*), dimension(..), intent(in) :: sendbuf
+        type(*), dimension(..) :: recvbuf
+        integer, intent(in) :: sendcount
+        integer, intent(in) :: recvcounts(*), displs(*)
+        type(MPI_Datatype), intent(in) :: sendtype, recvtype
+        type(MPI_Comm), intent(in) :: comm
+        type(MPI_Info), intent(in) :: info
+        type(MPI_Request), intent(out) :: request
+        integer, optional, intent(out) :: ierror
+    end subroutine MPIX_Allgatherv_init_f08ts
+end interface MPIX_Allgatherv_init
+
 interface MPI_Iallgatherv
     subroutine MPI_Iallgatherv_f08ts(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, &
                                    recvtype, comm, request, ierror)
