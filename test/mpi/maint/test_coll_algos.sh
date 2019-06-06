@@ -242,6 +242,7 @@ for algo_name in ${algo_names}; do
 
         echo "allgather2 10 ${env}" >> ${testlist_cvar}
         echo "allgather3 10 ${env}" >> ${testlist_cvar}
+        echo "p_allgather 10 ${env}" >> ${testlist_cvar}
         env=""
     done
 done
