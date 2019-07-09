@@ -274,6 +274,7 @@ for algo_name in ${algo_names}; do
             echo "allgatherv2 10 ${env}" >> ${testlist_cvar}
             echo "allgatherv3 10 ${env}" >> ${testlist_cvar}
             echo "allgatherv4 4 timeLimit=600 ${env}" >> ${testlist_cvar}
+            echo "p_allgatherv 10 ${env}" >> ${testlist_cvar}
             env=""
         done
     else
@@ -281,6 +282,7 @@ for algo_name in ${algo_names}; do
         echo "allgatherv2 10 ${env}" >> ${testlist_cvar}
         echo "allgatherv3 10 ${env}" >> ${testlist_cvar}
         echo "allgatherv4 4 timeLimit=600 ${env}" >> ${testlist_cvar}
+        echo "p_allgatherv 10 ${env}" >> ${testlist_cvar}
         env=""
     fi
 done

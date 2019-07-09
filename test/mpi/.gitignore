@@ -142,6 +142,7 @@
 /coll/p_red
 /coll/p_alltoall
 /coll/p_allgather
+/coll/p_allgatherv
 /coll/red3
 /coll/red4
 /coll/red_scat_block

@@ -87,6 +87,7 @@ noinst_PROGRAMS =      \
     p_red              \
     p_alltoall         \
     p_allgather        \
+    p_allgatherv       \
     red3               \
     red4               \
     red_scat_block     \
