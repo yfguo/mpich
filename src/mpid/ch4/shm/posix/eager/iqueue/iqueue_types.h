@@ -28,10 +28,10 @@ typedef struct MPIDI_POSIX_eager_iqueue_transport {
     int num_cells;              /* The number of cells allocated to each terminal in this transport */
     int size_of_cell;           /* The size of each of the cells in this transport */
     int total_num_cells;
-    MPIDU_genq_shared_queue_t *terminals;       /* The list of all the terminals that
+    MPIDU_genq_shared_queue_s *terminals;       /* The list of all the terminals that
                                                  * describe each of the cells */
-    MPIDU_genq_shared_queue_t *my_terminal;
-    MPIDU_genq_shared_cell_pool_t *cell_pool;
+    MPIDU_genq_shared_queue_t my_terminal;
+    MPIDU_genq_shared_cell_pool_t cell_pool;
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
 extern MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global;

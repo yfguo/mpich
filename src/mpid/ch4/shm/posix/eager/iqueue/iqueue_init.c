@@ -56,7 +56,7 @@ int MPIDI_POSIX_iqueue_init(int rank, int size)
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Create one terminal for each process with which we will be able to communicate. */
-    size_of_terminals = (size_t) MPIDI_POSIX_global.num_local * sizeof(MPIDU_genq_shared_queue_t);
+    size_of_terminals = (size_t) MPIDI_POSIX_global.num_local * sizeof(MPIDU_genq_shared_queue_s);
 
     /* Create the shared memory regions that will be used for the iqueue cells and terminals. */
     mpi_errno = MPIDU_Init_shm_alloc(size_of_terminals, (void *) &transport->terminals);
@@ -64,7 +64,7 @@ int MPIDI_POSIX_iqueue_init(int rank, int size)
 
     transport->my_terminal = &transport->terminals[MPIDI_POSIX_global.my_local_rank];
 
-    mpi_errno = MPIDU_genq_shared_queue_init(transport->my_terminal, MPIDU_GENQ_SHARED_QUEUE_MP);
+    mpi_errno = MPIDU_genq_shared_queue_init(transport->my_terminal, MPIDU_GENQ_SHARED_QUEUE_TYPE__MPSC);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Run local procs barrier */
