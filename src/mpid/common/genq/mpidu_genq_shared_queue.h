@@ -16,6 +16,11 @@
 #define MPIDU_GENQ_SHARED_QUEUE_MP     (0x10U)
 #define MPIDU_GENQ_SHARED_QUEUE_MC     (0x100U)
 
+typedef enum {
+    MPIDU_GENQ_SHARED_QUEUE_TYPE__SERIAL = 0x1U,
+    MPIDU_GENQ_SHARED_QUEUE_TYPE__MPSC = 0x10U
+} MPIDU_genq_shared_queue_type_e;
+
 typedef struct MPIDU_genq_shared_queue {
     union {
         uintptr_t s;
@@ -28,24 +33,18 @@ typedef struct MPIDU_genq_shared_queue {
         uint8_t pad[MPIDU_SHM_CACHE_LINE_LEN];
     } tail;
     unsigned flags;
-} MPIDU_genq_shared_queue_t;
+} MPIDU_genq_shared_queue_s;
 
-int MPIDU_genq_shared_queue_init(MPIDU_genq_shared_queue_t * queue, unsigned flags);
-int MPIDU_genq_shared_queue_dequeue(MPIDU_genq_shared_queue_t * queue,
-                                    MPIDU_genq_shared_cell_pool_t * pool, void **cell);
-int MPIDU_genq_shared_queue_dequeue_sc(MPIDU_genq_shared_queue_t * queue,
-                                       MPIDU_genq_shared_cell_pool_t * pool, void **cell);
-int MPIDU_genq_shared_queue_dequeue_mc(MPIDU_genq_shared_queue_t * queue,
-                                       MPIDU_genq_shared_cell_pool_t * pool, void **cell);
-int MPIDU_genq_shared_queue_enqueue(MPIDU_genq_shared_queue_t * queue,
-                                    MPIDU_genq_shared_cell_pool_t * pool, void *cell);
-int MPIDU_genq_shared_queue_enqueue_sp(MPIDU_genq_shared_queue_t * queue,
-                                       MPIDU_genq_shared_cell_pool_t * pool, void *cell);
-int MPIDU_genq_shared_queue_enqueue_mp(MPIDU_genq_shared_queue_t * queue,
-                                       MPIDU_genq_shared_cell_pool_t * pool, void *cell);
-void *MPIDU_genq_shared_queue_head(MPIDU_genq_shared_queue_t * queue,
-                                   MPIDU_genq_shared_cell_pool_t * pool);
-void *MPIDU_genq_shared_queue_next(MPIDU_genq_shared_cell_pool_t * pool, void *cell);
+typedef MPIDU_genq_shared_queue_s *MPIDU_genq_shared_queue_t;
+
+int MPIDU_genq_shared_queue_init(MPIDU_genq_shared_queue_t queue, unsigned flags);
+int MPIDU_genq_shared_queue_dequeue(MPIDU_genq_shared_queue_t queue,
+                                    MPIDU_genq_shared_cell_pool_t pool, void **cell);
+int MPIDU_genq_shared_queue_enqueue(MPIDU_genq_shared_queue_t queue,
+                                    MPIDU_genq_shared_cell_pool_t pool, void *cell);
+void *MPIDU_genq_shared_queue_head(MPIDU_genq_shared_queue_t queue,
+                                   MPIDU_genq_shared_cell_pool_t pool);
+void *MPIDU_genq_shared_queue_next(MPIDU_genq_shared_cell_pool_t pool, void *cell);
 
 #define MPIDU_GENQ_SHARED_QUEUE_FOREACH(queue, pool, cell) \
     for (void *tmp = MPIDU_genq_shared_queue_head((queue), (pool)), cell = tmp; tmp; \

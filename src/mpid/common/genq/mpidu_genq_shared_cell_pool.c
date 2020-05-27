@@ -17,21 +17,21 @@
 
 static pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static int cell_block_alloc(shared_cell_pool_t * pool, cell_block_t ** block);
+static int cell_block_alloc(shared_cell_pool_s * pool, cell_block_s ** block);
 
 int MPIDU_genq_shared_cell_pool_create(uintptr_t cell_size, uintptr_t num_cells_in_block,
                                        uintptr_t max_num_cells,
-                                       MPIDU_genq_shared_cell_pool_t ** pool)
+                                       MPIDU_genq_shared_cell_pool_t * pool)
 {
     int rc = MPI_SUCCESS;
-    shared_cell_pool_t *pool_obj;
+    shared_cell_pool_s *pool_obj;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_CREATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_CREATE);
 
     pthread_mutex_lock(&global_mutex);
 
-    pool_obj = MPL_malloc(sizeof(shared_cell_pool_t), MPL_MEM_OTHER);
+    pool_obj = MPL_malloc(sizeof(shared_cell_pool_s), MPL_MEM_OTHER);
 
     pool_obj->cell_size = cell_size;
     pool_obj->num_cells_in_block = num_cells_in_block;
@@ -42,7 +42,7 @@ int MPIDU_genq_shared_cell_pool_create(uintptr_t cell_size, uintptr_t num_cells_
 
     MPL_atomic_store_int(pool_obj->global_block_index, 0);
 
-    rc = MPIDU_Init_shm_alloc(max_num_cells * sizeof(shared_cell_header_t),
+    rc = MPIDU_Init_shm_alloc(max_num_cells * sizeof(shared_cell_header_s),
                               (void *) &pool_obj->all_cell_headers);
     MPIR_ERR_CHECK(rc);
 
@@ -70,15 +70,15 @@ int MPIDU_genq_shared_cell_pool_create(uintptr_t cell_size, uintptr_t num_cells_
 int MPIDU_genq_shared_cell_pool_destroy(MPIDU_genq_shared_cell_pool_t pool)
 {
     int rc = MPI_SUCCESS;
-    shared_cell_pool_t *pool_obj = (shared_cell_pool_t *) pool;
+    shared_cell_pool_s *pool_obj = (shared_cell_pool_s *) pool;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_DESTROY);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_DESTROY);
 
     pthread_mutex_lock(&global_mutex);
 
-    for (cell_block_t * block = pool_obj->cell_blocks; block;) {
-        cell_block_t *next = block->next;
+    for (cell_block_s * block = pool_obj->cell_blocks; block;) {
+        cell_block_s *next = block->next;
         MPL_free(block->cell_headers);
         MPL_free(block);
         block = next;
@@ -96,18 +96,18 @@ int MPIDU_genq_shared_cell_pool_destroy(MPIDU_genq_shared_cell_pool_t pool)
     return rc;
 }
 
-static int cell_block_alloc(shared_cell_pool_t * pool, cell_block_t ** block)
+static int cell_block_alloc(shared_cell_pool_s * pool, cell_block_s ** block)
 {
     int rc = MPI_SUCCESS;
     int block_idx = MPL_atomic_fetch_add_int((pool->global_block_index), 1);
     MPIR_ERR_CHKANDJUMP(block_idx >= pool->max_num_blocks, rc, MPI_ERR_OTHER, "**nomem");
 
-    cell_block_t *new_block = (cell_block_t *) MPL_malloc(sizeof(cell_block_t), MPL_MEM_OTHER);
+    cell_block_s *new_block = (cell_block_s *) MPL_malloc(sizeof(cell_block_s), MPL_MEM_OTHER);
     MPIR_ERR_CHKANDJUMP(!new_block, rc, MPI_ERR_OTHER, "**nomem");
 
     new_block->cell_headers =
-        (shared_cell_header_t **) MPL_malloc(pool->num_cells_in_block
-                                             * sizeof(shared_cell_header_t), MPL_MEM_OTHER);
+        (shared_cell_header_s **) MPL_malloc(pool->num_cells_in_block
+                                             * sizeof(shared_cell_header_s), MPL_MEM_OTHER);
     MPIR_ERR_CHKANDJUMP(!new_block->cell_headers, rc, MPI_ERR_OTHER, "**nomem");
 
     new_block->next = NULL;
@@ -135,13 +135,13 @@ static int cell_block_alloc(shared_cell_pool_t * pool, cell_block_t ** block)
 int MPIDU_genq_shared_cell_pool_alloc(MPIDU_genq_shared_cell_pool_t pool, void **cell)
 {
     int rc = MPI_SUCCESS;
-    shared_cell_pool_t *pool_obj = (shared_cell_pool_t *) pool;
+    shared_cell_pool_s *pool_obj = (shared_cell_pool_s *) pool;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_ALLOC);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_ALLOC);
 
     /* iteratively find a unused cell */
-    for (cell_block_t * block = pool_obj->cell_blocks; block; block = block->next) {
+    for (cell_block_s * block = pool_obj->cell_blocks; block; block = block->next) {
         for (int i = 0; i < pool_obj->num_cells_in_block; i++) {
             if (MPL_atomic_cas_int(&block->cell_headers[i]->in_use, 0, 1) == 0) {
                 *cell = HEADER_TO_CELL(pool_obj, block->cell_headers[i]);
@@ -150,7 +150,7 @@ int MPIDU_genq_shared_cell_pool_alloc(MPIDU_genq_shared_cell_pool_t pool, void *
         }
     }
 
-    cell_block_t *new_block;
+    cell_block_s *new_block;
     rc = cell_block_alloc(pool_obj, &new_block);
     MPIR_ERR_CHECK(rc);
 
@@ -159,7 +159,7 @@ int MPIDU_genq_shared_cell_pool_alloc(MPIDU_genq_shared_cell_pool_t pool, void *
     if (pool_obj->cell_blocks == NULL) {
         pool_obj->cell_blocks = new_block;
     } else {
-        cell_block_t *block;
+        cell_block_s *block;
         for (block = pool_obj->cell_blocks; block->next; block = block->next) {
         }
         block->next = new_block;
@@ -179,11 +179,11 @@ int MPIDU_genq_shared_cell_pool_alloc(MPIDU_genq_shared_cell_pool_t pool, void *
     goto fn_exit;
 }
 
-int MPIDU_genq_shared_cell_pool_free(MPIDU_genq_shared_cell_pool_t * pool, void *cell)
+int MPIDU_genq_shared_cell_pool_free(MPIDU_genq_shared_cell_pool_t pool, void *cell)
 {
     int rc = MPI_SUCCESS;
-    shared_cell_pool_t *pool_obj = (shared_cell_pool_t *) pool;
-    shared_cell_header_t *cell_header = CELL_TO_HEADER(pool_obj, cell);
+    shared_cell_pool_s *pool_obj = (shared_cell_pool_s *) pool;
+    shared_cell_header_s *cell_header = CELL_TO_HEADER(pool_obj, cell);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_FREE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_GENQ_SHARED_CELL_POOL_FREE);
