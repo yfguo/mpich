@@ -1485,9 +1485,13 @@
 
 # dtpool generated files
 /attr/testlist.dtp
+/attr/testlist.gpu
 /coll/testlist.dtp
+/coll/testlist.gpu
 /cxx/attr/testlist.dtp
+/cxx/attr/testlist.gpu
 /cxx/datatype/testlist.dtp
+/cxx/datatype/testlist.gpu
 /pt2pt/testlist.dtp
 /pt2pt/testlist.gpu
 /rma/testlist.dtp
