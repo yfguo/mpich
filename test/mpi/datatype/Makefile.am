@@ -44,6 +44,7 @@ noinst_PROGRAMS =             \
     pairtype_size_extent      \
     sendrecvt2                \
     sendrecvt4                \
+    sendrecv_nulltype         \
     simple_commit             \
     simple_pack               \
     simple_pack_external      \

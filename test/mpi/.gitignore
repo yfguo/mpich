@@ -336,6 +336,7 @@
 /datatype/segtest
 /datatype/sendrecvt2
 /datatype/sendrecvt4
+/datatype/sendrecv_nulltype
 /datatype/simple_commit
 /datatype/simple_pack
 /datatype/simple_pack_external

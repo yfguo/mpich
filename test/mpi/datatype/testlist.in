@@ -22,6 +22,7 @@ tresized 2
 tresized2 2
 sendrecvt2 2
 sendrecvt4 2
+sendrecv_nulltype 2
 tmatchsize 1
 tfree 2
 typelb 1
