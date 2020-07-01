@@ -272,6 +272,19 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend_reply(MPIR_Context_id_t contex
     return mpi_errno;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_get_avail_long_protocol(const void *data, int count,
+                                                                    MPI_Datatype datatype,
+                                                                    int *avail_protocol_bits)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_GET_AVAIL_LONG_PROTOCOL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_GET_AVAIL_LONG_PROTOCOL);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_GET_AVAIL_LONG_PROTOCOL);
+    return mpi_errno;
+}
+
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_hdr_max_sz(void)
 {
     /* Maximum size that fits in short send */
@@ -401,6 +414,47 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr_reply(MPIR_Context_id_t con
                                         kind, handler_id, am_hdr, am_hdr_sz);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_SEND_HDR_REPLY);
+
+    return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend_pipeline_rts(int rank, MPIR_Comm * comm,
+                                                               MPIDI_POSIX_am_header_kind_t kind,
+                                                               int handler_id, const void *am_hdr,
+                                                               size_t am_hdr_sz, const void *data,
+                                                               MPI_Count count,
+                                                               MPI_Datatype datatype,
+                                                               MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+
+    return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend_pipeline_seg(MPIR_Context_id_t context_id,
+                                                               int src_rank,
+                                                               MPIDI_POSIX_am_header_kind_t kind,
+                                                               int handler_id, const void *am_hdr,
+                                                               size_t am_hdr_sz, const void *data,
+                                                               MPI_Count count,
+                                                               MPI_Datatype datatype,
+                                                               MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
 
     return mpi_errno;
 }
