@@ -61,6 +61,29 @@ static inline int MPIDI_STUBSHM_am_isend_reply(MPIR_Context_id_t context_id, int
     return MPI_SUCCESS;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_STUBSHM_am_isend_pipeline(MPIR_Context_id_t context_id,
+                                                             int src_rank,
+                                                             MPIDI_STUBSHM_am_header_kind_t kind,
+                                                             int handler_id,
+                                                             const void *am_hdr,
+                                                             size_t am_hdr_sz,
+                                                             const void *data,
+                                                             MPI_Count count,
+                                                             MPI_Datatype datatype,
+                                                             MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_STUBSHM_AM_ISEND_PIPELINE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_STUBSHM_AM_ISEND_PIPELINE);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_STUBSHM_AM_ISEND_PIPELINE);
+
+    return mpi_errno;
+}
+
 static inline size_t MPIDI_STUBSHM_am_hdr_max_sz(void)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_STUBSHM_AM_HDR_MAX_SZ);
