@@ -67,17 +67,24 @@ typedef struct MPIDIG_hdr_t {
     int tag;
     MPIR_Context_id_t context_id;
     int error_bits;
+    int payload_handler_id;     /* Handler id of the message that uses long message as the
+                                 * carrier. E.g. MPIDIG_SSEND_REQ would mean this long message
+                                 * is actually a AM SSEND. If this field is -1, it means the long
+                                 * message is a regular AM SEND */
 } MPIDIG_hdr_t;
 
 typedef struct MPIDIG_send_long_req_msg_t {
     MPIDIG_hdr_t hdr;
     size_t data_sz;             /* Message size in bytes */
     MPIR_Request *sreq_ptr;     /* Pointer value of the request object at the sender side */
+    int avail_protocol_bits;    /* bits indicating available AM long message protocols for
+                                 * this send */
 } MPIDIG_send_long_req_msg_t;
 
 typedef struct MPIDIG_send_long_ack_msg_t {
     MPIR_Request *sreq_ptr;
     MPIR_Request *rreq_ptr;
+    int preferred_protocol;     /* receiver's choice of AM long message protocol */
 } MPIDIG_send_long_ack_msg_t;
 
 typedef struct MPIDIG_send_long_lmt_msg_t {

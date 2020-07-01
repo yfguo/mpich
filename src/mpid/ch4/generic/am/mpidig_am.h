@@ -13,7 +13,13 @@ enum {
 
     MPIDIG_SEND_LONG_REQ,       /* Rendezvous send RTS (request to send) */
     MPIDIG_SEND_LONG_ACK,       /* Rendezvous send CTS (clear to send) */
+    /* FIXME: This old long message protocol will be replaced by the new one
+     * I left it here as a WIP reference, will remove in the final version */
     MPIDIG_SEND_LONG_LMT,       /* Rendezvous send LMT */
+
+    /* new large message AM protocols */
+    MPIDIG_SEND_LONG_PIPELINE,
+    MPIDIG_SEND_LONG_RDMA_READ,
 
     MPIDIG_SSEND_REQ,
     MPIDIG_SSEND_ACK,
@@ -60,6 +66,9 @@ enum {
 
     MPIDIG_HANDLER_STATIC_MAX
 };
+
+#define MPIDIG_AVAIL_LONG_PROTOCOL_BIT__PIPELINE 0x1
+#define MPIDIG_AVAIL_LONG_PROTOCOL_BIT__RDMA_READ 0x10
 
 typedef int (*MPIDIG_am_target_cmpl_cb) (MPIR_Request * req);
 typedef int (*MPIDIG_am_origin_cb) (MPIR_Request * req);
