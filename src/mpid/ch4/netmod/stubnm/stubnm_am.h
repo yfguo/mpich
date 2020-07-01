@@ -62,6 +62,14 @@ static inline size_t MPIDI_NM_am_eager_buf_limit(void)
     return 0;
 }
 
+static inline int MPIDI_NM_am_get_avail_long_protocol(const void *data, MPI_Count count,
+                                                      MPI_Datatype datatype,
+                                                      int *avail_protocol_bits)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
 static inline int MPIDI_NM_am_send_hdr(int rank,
                                        MPIR_Comm * comm,
                                        int handler_id, const void *am_hdr, size_t am_hdr_sz)
@@ -72,6 +80,34 @@ static inline int MPIDI_NM_am_send_hdr(int rank,
 
 static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id, int src_rank,
                                              int handler_id, const void *am_hdr, size_t am_hdr_sz)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_isend_pipeline_rts(int rank, MPIR_Comm * comm, int handler_id,
+                                                 const void *am_hdr, size_t am_hdr_sz,
+                                                 const void *data, MPI_Count count,
+                                                 MPI_Datatype datatype, MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_isend_pipeline_seg(MPIR_Context_id_t context_id, int src_rank,
+                                                 int handler_id, const void *am_hdr,
+                                                 size_t am_hdr_sz, const void *data,
+                                                 MPI_Count count, MPI_Datatype datatype,
+                                                 MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_isend_rdma_read_req(int rank, MPIR_Comm * comm, int handler_id,
+                                                  const void *am_hdr, size_t am_hdr_sz,
+                                                  const void *data, MPI_Count count,
+                                                  MPI_Datatype datatype, MPIR_Request * sreq)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;
