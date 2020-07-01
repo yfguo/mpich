@@ -44,6 +44,32 @@ static inline int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_id, int src_
     return MPI_SUCCESS;
 }
 
+static inline int MPIDI_NM_am_isend_pipeline(MPIR_Context_id_t context_id,
+                                             int src_rank,
+                                             int handler_id,
+                                             const void *am_hdr,
+                                             size_t am_hdr_sz,
+                                             const void *data,
+                                             MPI_Count count,
+                                             MPI_Datatype datatype, MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_isend_rdma_read(MPIR_Context_id_t context_id,
+                                              int src_rank,
+                                              int handler_id,
+                                              const void *am_hdr,
+                                              size_t am_hdr_sz,
+                                              const void *data,
+                                              MPI_Count count,
+                                              MPI_Datatype datatype, MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
 static inline size_t MPIDI_NM_am_hdr_max_sz(void)
 {
     MPIR_Assert(0);
@@ -60,6 +86,14 @@ static inline size_t MPIDI_NM_am_eager_buf_limit(void)
 {
     MPIR_Assert(0);
     return 0;
+}
+
+static inline int MPIDI_NM_am_get_avail_long_protocol(const void *data, MPI_Count count,
+                                                      MPI_Datatype datatype,
+                                                      int *avail_protocol_bits)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
 }
 
 static inline int MPIDI_NM_am_send_hdr(int rank,

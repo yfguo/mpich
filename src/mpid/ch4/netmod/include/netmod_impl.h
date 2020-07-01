@@ -92,6 +92,59 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_i
     return ret;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_pipeline(MPIR_Context_id_t context_id, int src_rank,
+                                                        int handler_id, const void *am_hdr,
+                                                        size_t am_hdr_sz, const void *data,
+                                                        MPI_Count count, MPI_Datatype datatype,
+                                                        MPIR_Request * sreq)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISEND_PIPELINE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISEND_PIPELINE);
+
+    ret =
+        MPIDI_NM_func->am_isend_pipeline(context_id, src_rank, handler_id, am_hdr, am_hdr_sz, data,
+                                         count, datatype, sreq);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_ISEND_PIPELINE);
+    return ret;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_rdma_read(MPIR_Context_id_t context_id, int src_rank,
+                                                         int handler_id, const void *am_hdr,
+                                                         size_t am_hdr_sz, const void *data,
+                                                         MPI_Count count, MPI_Datatype datatype,
+                                                         MPIR_Request * sreq)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
+
+    ret = MPIDI_NM_func->am_isend_rdma_read(context_id, src_rank, handler_id, am_hdr, am_hdr_sz,
+                                            data, count, datatype, sreq);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
+    return ret;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_get_avail_long_protocol(const void *am_hdr,
+                                                                 MPI_Count count,
+                                                                 MPI_Datatype datatype,
+                                                                 int *avail_protocol_bits)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
+
+    ret = MPIDI_NM_func->am_get_avail_long_protocol(data, count, datatype, avail_protocol_bits);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
+    return ret;
+}
+
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_NM_am_hdr_max_sz(void)
 {
     int ret;
