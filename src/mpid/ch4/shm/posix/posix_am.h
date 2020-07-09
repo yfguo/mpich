@@ -8,7 +8,6 @@
 
 #include "posix_impl.h"
 #include "posix_am_impl.h"
-#include "posix_eager.h"
 #include "mpidu_genq.h"
 
 /* Enqueue a request header onto the postponed message queue. This is a helper function and most
@@ -276,7 +275,8 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_hdr_max_sz(void)
 {
     /* Maximum size that fits in short send */
 
-    size_t max_shortsend = MPIDI_POSIX_eager_payload_limit();
+    size_t max_shortsend =
+        MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE - sizeof(MPIDI_POSIX_eager_iqueue_cell_t);
 
     /* Maximum payload size representable by MPIDI_POSIX_am_header_t::am_hdr_sz field */
 
@@ -287,12 +287,12 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_hdr_max_sz(void)
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_eager_limit(void)
 {
-    return MPIDI_POSIX_eager_payload_limit();
+    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE - sizeof(MPIDI_POSIX_eager_iqueue_cell_t);
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_am_eager_buf_limit(void)
 {
-    return MPIDI_POSIX_eager_buf_limit();
+    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
 }
 
 /* Enqueue a request header onto the postponed message queue. This is a helper function and most

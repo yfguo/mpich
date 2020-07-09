@@ -8,13 +8,10 @@
 
 #include "posix_impl.h"
 #include "posix_am_impl.h"
-#include "posix_eager.h"
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_am_request_init(MPIR_Request * req)
 {
     MPIDI_POSIX_AMREQUEST(req, req_hdr) = NULL;
-
-    MPIDI_POSIX_EAGER_RECV_INITIALIZE_HOOK(req);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_am_request_finalize(MPIR_Request * req)
@@ -22,8 +19,6 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_am_request_finalize(MPIR_Request * req
     MPIDI_POSIX_am_request_header_t *req_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_REQUEST_FINALIZE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_REQUEST_FINALIZE);
-
-    MPIDI_POSIX_EAGER_RECV_COMPLETED_HOOK(req);
 
     req_hdr = MPIDI_POSIX_AMREQUEST(req, req_hdr);
 

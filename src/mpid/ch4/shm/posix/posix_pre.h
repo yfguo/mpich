@@ -116,22 +116,6 @@ typedef struct MPIDI_POSIX_am_request {
 #endif                          /* POSIX_AM_REQUEST_INLINE */
 } MPIDI_POSIX_am_request_t;
 
-#define MPIDI_POSIX_EAGER_RECV_INITIALIZE_HOOK(request)\
-do { \
-} while (0)
-
-#define MPIDI_POSIX_EAGER_RECV_POSTED_HOOK(request,rank,communicator)\
-do { \
-    int grank_ = ((rank) >= 0) ? MPIDIU_rank_to_lpid((rank), (communicator)) : (rank); \
-    (request)->dev.ch4.am.shm_am.posix.eager_recv_posted_hook_grank = grank_; \
-    MPIDI_POSIX_eager_recv_posted_hook(grank_); \
-} while (0)
-
-#define MPIDI_POSIX_EAGER_RECV_COMPLETED_HOOK(request)\
-do { \
-    MPIDI_POSIX_eager_recv_completed_hook((request)->dev.ch4.am.shm_am.posix.eager_recv_posted_hook_grank); \
-} while (0)
-
 typedef struct {
     MPL_proc_mutex_t *shm_mutex_ptr;    /* interprocess mutex for shm atomic RMA */
 } MPIDI_POSIX_win_t;
