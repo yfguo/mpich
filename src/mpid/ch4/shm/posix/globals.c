@@ -8,6 +8,6 @@
 
 MPIDI_POSIX_global_t MPIDI_POSIX_global = { 0 };
 
-MPIDI_POSIX_eager_funcs_t *MPIDI_POSIX_eager_func = NULL;
-
 MPL_atomic_uint64_t *MPIDI_POSIX_shm_limit_counter = NULL;
+
+MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global = { 0 };

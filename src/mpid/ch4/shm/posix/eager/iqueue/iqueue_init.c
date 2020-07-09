@@ -7,33 +7,6 @@
 #include "iqueue_noinline.h"
 #include "mpidu_genq.h"
 
-/*
-=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
-
-cvars:
-    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS
-      category    : CH4
-      type        : int
-      default     : 64
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        The number of cells used for the depth of the iqueue.
-
-    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE
-      category    : CH4
-      type        : int
-      default     : 69632
-      class       : none
-      verbosity   : MPI_T_VERBOSITY_USER_BASIC
-      scope       : MPI_T_SCOPE_ALL_EQ
-      description : >-
-        Size of each cell. 4KB * 17 is default to avoid a cache aliasing issue.
-
-=== END_MPI_T_CVAR_INFO_BLOCK ===
-*/
-
 int MPIDI_POSIX_iqueue_init(int rank, int size)
 {
     int mpi_errno = MPI_SUCCESS;

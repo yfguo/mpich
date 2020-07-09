@@ -25,6 +25,10 @@ enum {
 #define MPIDI_POSIX_REQUEST(req, field)       ((req)->dev.ch4.shm.posix.field)
 #define MPIDI_POSIX_COMM(comm, field)         ((comm)->dev.ch4.shm.posix.field)
 
+#define MPIDI_MAX_POSIX_EAGER_STRING_LEN 64
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR 0
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA 1
+
 typedef struct {
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
 
@@ -45,6 +49,45 @@ typedef struct {
     int local_rank_0;
 } MPIDI_POSIX_global_t;
 
+/* Each cell contains some data being communicated from one process to another. */
+typedef struct MPIDI_POSIX_eager_iqueue_cell {
+    uint16_t type;              /* Type of cell (head/tail/etc.) */
+    uint16_t from;              /* Who is the message in the cell from */
+    uint32_t payload_size;      /* Size of the message in the cell */
+    MPIDI_POSIX_am_header_t am_header;  /* If this cell is the beginning of a message, it will have
+                                         * an active message header and this will point to it. */
+} MPIDI_POSIX_eager_iqueue_cell_t;
+
+typedef struct MPIDI_POSIX_eager_iqueue_transport {
+    int num_cells;              /* The number of cells allocated to each terminal in this transport */
+    int size_of_cell;           /* The size of each of the cells in this transport */
+    MPIDU_genq_shmem_queue_u *terminals;        /* The list of all the terminals that
+                                                 * describe each of the cells */
+    MPIDU_genq_shmem_queue_t my_terminal;
+    MPIDU_genq_shmem_pool_t cell_pool;
+} MPIDI_POSIX_eager_iqueue_transport_t;
+
+typedef struct MPIDI_POSIX_eager_iqueue_recv_transaction {
+    void *pointer_to_cell;
+} MPIDI_POSIX_eager_iqueue_recv_transaction_t;
+
+typedef struct MPIDI_POSIX_eager_recv_transaction {
+    /* Public */
+    void *msg_hdr;
+    void *payload;
+    size_t payload_sz;          /* 2GB limit */
+    int src_grank;
+    /* Private */
+    MPIDI_POSIX_eager_iqueue_recv_transaction_t transport;
+} MPIDI_POSIX_eager_recv_transaction_t;
+
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell) \
+    ((char*)(cell) + sizeof(MPIDI_POSIX_eager_iqueue_cell_t))
+
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_CAPACITY(transport) \
+    ((transport)->size_of_cell - sizeof(MPIDI_POSIX_eager_iqueue_cell_t))
+
 extern MPIDI_POSIX_global_t MPIDI_POSIX_global;
+extern MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global;
 
 #endif /* POSIX_TYPES_H_INCLUDED */

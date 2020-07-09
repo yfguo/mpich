@@ -6,7 +6,6 @@
 #include "mpidimpl.h"
 #include "posix_types.h"
 #include "posix_am_impl.h"
-#include <posix_eager.h>
 #include "shm_types.h"
 #include "shm_control.h"
 
@@ -90,7 +89,6 @@ static int progress_recv(int blocking)
             MPIDIG_recv_copy(p_data, rreq);
             MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
             MPIDI_POSIX_eager_recv_commit(&transaction);
-            MPIDI_POSIX_EAGER_RECV_COMPLETED_HOOK(rreq);
             goto fn_exit;
         } else {
             /* prepare for asynchronous transfer */

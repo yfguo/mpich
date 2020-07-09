@@ -27,6 +27,26 @@ cvars:
       description : >-
         Defines the location of tuning file.
 
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS
+      category    : CH4
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of cells used for the depth of the iqueue.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE
+      category    : CH4
+      type        : int
+      default     : 69632
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Size of each cell. 4KB * 17 is default to avoid a cache aliasing issue.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -34,14 +54,14 @@ cvars:
 #include "posix_types.h"
 #include "ch4_types.h"
 
-#include "posix_eager.h"
 #include "posix_noinline.h"
 #include "posix_csel_container.h"
 #include "mpidu_genq.h"
 
 extern MPL_atomic_uint64_t *MPIDI_POSIX_shm_limit_counter;
 
-static int choose_posix_eager(void);
+static int iqueue_init(int rank, int size);
+static int iqueue_finalize();
 static void *host_alloc(uintptr_t size);
 static void host_free(void *ptr);
 
@@ -55,41 +75,6 @@ static void host_free(void *ptr)
     MPL_free(ptr);
 }
 
-
-static int choose_posix_eager(void)
-{
-    int mpi_errno = MPI_SUCCESS;
-    int i;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CHOOSE_POSIX_EAGER);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CHOOSE_POSIX_EAGER);
-
-    MPIR_Assert(MPIR_CVAR_CH4_SHM_POSIX_EAGER != NULL);
-
-    if (strcmp(MPIR_CVAR_CH4_SHM_POSIX_EAGER, "") == 0) {
-        /* posix_eager not specified, using the default */
-        MPIDI_POSIX_eager_func = MPIDI_POSIX_eager_funcs[0];
-        goto fn_exit;
-    }
-
-    for (i = 0; i < MPIDI_num_posix_eager_fabrics; ++i) {
-        /* use MPL variant of strncasecmp if we get one */
-        if (!strncasecmp
-            (MPIR_CVAR_CH4_SHM_POSIX_EAGER, MPIDI_POSIX_eager_strings[i],
-             MPIDI_MAX_POSIX_EAGER_STRING_LEN)) {
-            MPIDI_POSIX_eager_func = MPIDI_POSIX_eager_funcs[i];
-            goto fn_exit;
-        }
-    }
-
-    MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**ch4|invalid_shm_posix_eager",
-                         "**ch4|invalid_shm_posix_eager %s", MPIR_CVAR_CH4_SHM_POSIX_EAGER);
-  fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CHOOSE_POSIX_EAGER);
-    return mpi_errno;
-  fn_fail:
-    goto fn_exit;
-}
 
 static void *create_container(struct json_object *obj)
 {
@@ -120,6 +105,73 @@ static void *create_container(struct json_object *obj)
     }
 
     return cnt;
+}
+
+static int iqueue_init(int rank, int size)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_POSIX_eager_iqueue_transport_t *transport;
+    size_t size_of_terminals;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_IQUEUE_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_IQUEUE_INIT);
+
+    /* Get the internal data structure to describe the iqueues */
+    transport = &MPIDI_POSIX_eager_iqueue_transport_global;
+
+    transport->num_cells = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS;
+    transport->size_of_cell = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
+
+    mpi_errno = MPIDU_genq_shmem_pool_create_unsafe(transport->size_of_cell, transport->num_cells,
+                                                    MPIDI_POSIX_global.num_local,
+                                                    MPIDI_POSIX_global.my_local_rank,
+                                                    &transport->cell_pool);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* Create one terminal for each process with which we will be able to communicate. */
+    size_of_terminals = (size_t) MPIDI_POSIX_global.num_local * sizeof(MPIDU_genq_shmem_queue_u);
+
+    /* Create the shared memory regions that will be used for the iqueue cells and terminals. */
+    mpi_errno = MPIDU_Init_shm_alloc(size_of_terminals, (void *) &transport->terminals);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    transport->my_terminal = &transport->terminals[MPIDI_POSIX_global.my_local_rank];
+
+    mpi_errno = MPIDU_genq_shmem_queue_init(transport->my_terminal, transport->cell_pool,
+                                            MPIDU_GENQ_SHMEM_QUEUE_TYPE__MPSC);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* Run local procs barrier */
+    mpi_errno = MPIDU_Init_shm_barrier();
+    MPIR_ERR_CHECK(mpi_errno);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_IQUEUE_INIT);
+    return mpi_errno;
+  fn_fail:
+    MPIDU_Init_shm_free(transport->terminals);
+    MPIDU_genq_shmem_pool_destroy_unsafe(transport->cell_pool);
+    goto fn_exit;
+}
+
+static int iqueue_finalize()
+{
+    MPIDI_POSIX_eager_iqueue_transport_t *transport;
+    int mpi_errno;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_IQUEUE_FINALIZE);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_IQUEUE_FINALIZE);
+
+    transport = &MPIDI_POSIX_eager_iqueue_transport_global;
+
+    mpi_errno = MPIDU_Init_shm_free(transport->terminals);
+    mpi_errno = MPIDU_genq_shmem_pool_destroy_unsafe(transport->cell_pool);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_IQUEUE_FINALIZE);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
 }
 
 int MPIDI_POSIX_mpi_init_hook(int rank, int size, int *tag_bits)
@@ -168,9 +220,7 @@ int MPIDI_POSIX_mpi_init_hook(int rank, int size, int *tag_bits)
         MPIDI_POSIX_global.active_rreq[i] = NULL;
     }
 
-    choose_posix_eager();
-
-    mpi_errno = MPIDI_POSIX_eager_init(rank, size);
+    mpi_errno = iqueue_init(rank, size);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* There is no restriction on the tag_bits from the posix shmod side */
@@ -197,7 +247,7 @@ int MPIDI_POSIX_mpi_finalize_hook(void)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_FINALIZE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_FINALIZE_HOOK);
 
-    mpi_errno = MPIDI_POSIX_eager_finalize();
+    mpi_errno = iqueue_finalize();
     MPIR_ERR_CHECK(mpi_errno);
 
     MPIDU_genq_private_pool_destroy_unsafe(MPIDI_POSIX_global.am_hdr_buf_pool);
