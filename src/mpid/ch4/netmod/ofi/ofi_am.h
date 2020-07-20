@@ -157,9 +157,29 @@ static inline int MPIDI_NM_am_get_avail_long_protocol(const void *data, MPI_Coun
                                                       int *avail_protocol_bits)
 {
     int mpi_errno = MPI_SUCCESS;
+    int dt_contig;
+    MPI_Aint data_sz;
+    MPI_Aint dt_true_lb, last;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    bool need_packing = false;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
+
+    MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
+    need_packing = dt_contig ? false : true;
+
+    MPIR_GPU_query_pointer_attr(data, &attr);
+    if (attr.type == MPL_GPU_POINTER_DEV && !MPIDI_OFI_ENABLE_HMEM) {
+        /* Force packing of GPU buffer in host memory */
+        need_packing = true;
+    }
+
+    /* If the source buffer can be send without packing, rdma read can be used */
+    if (!need_packing) {
+        *avail_protocol_bits |= MPIDIG_AVAIL_LONG_PROTOCOL_BIT__RDMA_READ;
+    }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_GET_AVAIL_LONG_PROTOCOL);
     return mpi_errno;
