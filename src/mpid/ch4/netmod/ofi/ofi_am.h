@@ -145,7 +145,8 @@ static inline int MPIDI_NM_am_isend_rdma_read(MPIR_Context_id_t context_id,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
 
-    MPIR_Assert(0);
+    mpi_errno = MPIDI_OFI_do_am_isend(src_rank, MPIDIG_context_id_to_comm(context_id), handler_id,
+                                      am_hdr, am_hdr_sz, data, count, datatype, sreq);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_ISEND_RDMA_READ);
     return mpi_errno;
