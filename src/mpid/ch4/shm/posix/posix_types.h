@@ -26,17 +26,32 @@ enum {
 #define MPIDI_POSIX_COMM(comm, field)         ((comm)->dev.ch4.shm.posix.field)
 
 #define MPIDI_MAX_POSIX_EAGER_STRING_LEN 64
-#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR 0
-#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA 1
+
+typedef enum {
+    MPIDI_POSIX_DEFERRED_AM_ISEND_OP__EAGER,
+    MPIDI_POSIX_DEFERRED_AM_ISEND_OP__PIPELINE
+} MPIDI_POSIX_deferred_am_isend_op_e;
+
+typedef struct MPIDI_POSIX_deferred_am_isend_req {
+    int op;
+    int grank;
+    const void *buf;
+    size_t count;
+    MPI_Datatype datatype;
+    MPIR_Request *sreq;
+    MPIDI_POSIX_am_header_t msg_hdr;
+    void *am_hdr;
+    int header_only;
+
+    struct MPIDI_POSIX_deferred_am_isend_req *prev;
+    struct MPIDI_POSIX_deferred_am_isend_req *next;
+} MPIDI_POSIX_deferred_am_isend_req_t;
 
 typedef struct {
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
 
     /* Postponed queue */
-    MPIDI_POSIX_am_request_header_t *postponed_queue;
-
-    /* Active recv requests array */
-    MPIR_Request **active_rreq;
+    MPIDI_POSIX_deferred_am_isend_req_t *deferred_am_isend_q;
 
     void *shm_ptr;
 
@@ -51,9 +66,7 @@ typedef struct {
 
 /* Each cell contains some data being communicated from one process to another. */
 typedef struct MPIDI_POSIX_eager_iqueue_cell {
-    uint16_t type;              /* Type of cell (head/tail/etc.) */
     uint16_t from;              /* Who is the message in the cell from */
-    uint32_t payload_size;      /* Size of the message in the cell */
     MPIDI_POSIX_am_header_t am_header;  /* If this cell is the beginning of a message, it will have
                                          * an active message header and this will point to it. */
 } MPIDI_POSIX_eager_iqueue_cell_t;
@@ -75,7 +88,6 @@ typedef struct MPIDI_POSIX_eager_recv_transaction {
     /* Public */
     void *msg_hdr;
     void *payload;
-    size_t payload_sz;          /* 2GB limit */
     int src_grank;
     /* Private */
     MPIDI_POSIX_eager_iqueue_recv_transaction_t transport;

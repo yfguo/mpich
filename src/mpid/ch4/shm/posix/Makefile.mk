@@ -32,6 +32,7 @@ mpi_core_sources += src/mpid/ch4/shm/posix/globals.c    \
                     src/mpid/ch4/shm/posix/posix_op.c \
                     src/mpid/ch4/shm/posix/posix_datatype.c \
                     src/mpid/ch4/shm/posix/posix_spawn.c \
-                    src/mpid/ch4/shm/posix/posix_win.c
+                    src/mpid/ch4/shm/posix/posix_win.c \
+                    src/mpid/ch4/shm/posix/posix_am_impl.c
 
 endif

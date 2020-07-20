@@ -461,7 +461,6 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
 
     MPIDIG_recv_type_init(in_data_sz, rreq);
-
     if (is_async) {
         *req = rreq;
     } else {
@@ -793,7 +792,6 @@ int MPIDIG_send_long_ack_target_msg_cb(int handler_id, void *am_hdr, void *data,
     MPIR_Assert(sreq != NULL);
 
     /* Start the main data transfer */
-
     switch (msg_hdr->preferred_protocol) {
         case MPIDIG_SEND_LONG_PIPELINE:
             mpi_errno = do_send_long_pipeline(sreq, msg_hdr->rreq_ptr);
