@@ -233,13 +233,17 @@ static inline int MPIDIG_do_rndv_send(const void *buf, MPI_Aint count, MPI_Datat
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     if (MPIDI_av_is_local(addr)) {
-        /* TODO: check SHM for additional supported protocol */
+        mpi_errno = MPIDI_SHM_am_get_avail_long_protocol(buf, count, datatype,
+                                                         &am_hdr.avail_protocol_bits);
+        MPIR_ERR_CHECK(mpi_errno);
         mpi_errno = MPIDI_SHM_am_send_hdr(rank, comm, MPIDIG_SEND_LONG_REQ,
                                           &am_hdr, sizeof(am_hdr));
     } else
 #endif
     {
-        /* TODO: check NM for additional supported protocol */
+        mpi_errno = MPIDI_NM_am_get_avail_long_protocol(buf, count, datatype,
+                                                        &am_hdr.avail_protocol_bits);
+        MPIR_ERR_CHECK(mpi_errno);
         mpi_errno = MPIDI_NM_am_send_hdr(rank, comm, MPIDIG_SEND_LONG_REQ, &am_hdr, sizeof(am_hdr));
     }
     MPIR_ERR_CHECK(mpi_errno);
