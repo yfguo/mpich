@@ -87,9 +87,9 @@ typedef struct MPIDIG_send_long_ack_msg_t {
     int preferred_protocol;     /* receiver's choice of AM long message protocol */
 } MPIDIG_send_long_ack_msg_t;
 
-typedef struct MPIDIG_send_long_lmt_msg_t {
+typedef struct MPIDIG_send_long_pipeline_msg_t {
     MPIR_Request *rreq_ptr;
-} MPIDIG_send_long_lmt_msg_t;
+} MPIDIG_send_long_pipeline_msg_t;
 
 typedef struct MPIDIG_ssend_req_msg_t {
     MPIDIG_hdr_t hdr;

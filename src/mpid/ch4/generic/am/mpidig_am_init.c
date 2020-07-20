@@ -154,9 +154,6 @@ int MPIDIG_am_init(void)
     MPIDIG_am_reg_cb(MPIDIG_SEND, &MPIDIG_send_origin_cb, &MPIDIG_send_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_REQ, NULL, &MPIDIG_send_long_req_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_ACK, NULL, &MPIDIG_send_long_ack_target_msg_cb);
-    /* FIXME: remove old LMT */
-    MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_LMT,
-                     &MPIDIG_send_long_lmt_origin_cb, &MPIDIG_send_long_lmt_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_PIPELINE, &MPIDIG_send_long_pipeline_origin_cb,
                      &MPIDIG_send_long_pipeline_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_RDMA_READ, &MPIDIG_send_long_rdma_read_origin_cb,

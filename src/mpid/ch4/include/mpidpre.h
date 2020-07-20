@@ -89,6 +89,9 @@ typedef struct MPIDIG_lreq_t {
     int rank;
     int tag;
     MPIR_Context_id_t context_id;
+    MPI_Count data_sz_left;     /* number of count left for segmenting/packing in pipeline */
+    MPI_Aint offset;            /* offset to next segment in user buffer */
+    MPIR_Request *parent_req;
 } MPIDIG_lreq_t;
 
 typedef struct MPIDIG_rreq_t {
@@ -208,6 +211,7 @@ typedef struct MPIDIG_req_t {
     int tag;
     MPIR_Context_id_t context_id;
     MPI_Datatype datatype;
+    int avail_protocol_bits;    /* avail_protocol_bits from sender */
 } MPIDIG_req_t;
 
 /* Structure to capture arguments for pt2pt persistent communications */
