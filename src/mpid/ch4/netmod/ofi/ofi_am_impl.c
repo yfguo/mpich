@@ -17,7 +17,7 @@ void MPIDI_OFI_deferred_am_isend_dequeue(MPIDI_OFI_deferred_am_isend_req_t * dre
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DEFERRED_AM_ISEND_DEQUEUE);
 
     DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, curr_req);
-    MPL_free(dreq);
+    MPL_free(curr_req);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DEFERRED_AM_ISEND_DEQUEUE);
 }
@@ -31,6 +31,7 @@ int MPIDI_OFI_deferred_am_isend_issue(MPIDI_OFI_deferred_am_isend_req_t * dreq)
     MPIR_Datatype *dt_ptr;
     char *send_buf;
     bool need_packing = false;
+    bool data_lt_eager_threshold = false;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DEFERRED_AM_ISEND_ISSUE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DEFERRED_AM_ISEND_ISSUE);
@@ -38,6 +39,10 @@ int MPIDI_OFI_deferred_am_isend_issue(MPIDI_OFI_deferred_am_isend_req_t * dreq)
     MPIDI_Datatype_get_info(dreq->count, dreq->datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
     need_packing = dt_contig ? false : true;
     send_buf = (char *) dreq->buf + dt_true_lb;
+
+    data_lt_eager_threshold =
+        (MPIDI_OFI_AMREQUEST_HDR(dreq->sreq, am_hdr_sz) + dreq->data_sz
+         + sizeof(MPIDI_OFI_am_header_t) <= MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE);
 
     MPL_pointer_attr_t attr;
     MPIR_GPU_query_pointer_attr(dreq->buf, &attr);
@@ -52,8 +57,7 @@ int MPIDI_OFI_deferred_am_isend_issue(MPIDI_OFI_deferred_am_isend_req_t * dreq)
          * we should not allocate the entire buffer and do the packing at once. */
         /* TODO: (1) Skip packing for high-density datatypes;
          *       (2) Pipeline allocation for low-density datatypes; */
-        if (dreq->am_hdr_sz + dreq->data_sz + sizeof(MPIDI_OFI_am_header_t) <=
-            MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE) {
+        if (data_lt_eager_threshold) {
             mpi_errno = MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_pack_buf_pool,
                                                            (void **) &send_buf);
             if (send_buf == NULL) {
@@ -75,17 +79,12 @@ int MPIDI_OFI_deferred_am_isend_issue(MPIDI_OFI_deferred_am_isend_req_t * dreq)
         MPIDI_OFI_AMREQUEST_HDR(dreq->sreq, pack_buffer) = NULL;
     }
 
-    if (dreq->am_hdr_sz + dreq->data_sz + sizeof(MPIDI_OFI_am_header_t) <=
-        MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE) {
-        mpi_errno =
-            MPIDI_OFI_am_isend_short(dreq->rank, dreq->comm, dreq->handler_id,
-                                     MPIDI_OFI_AMREQUEST_HDR(dreq->sreq, am_hdr), dreq->am_hdr_sz,
-                                     send_buf, dreq->data_sz, dreq->sreq);
+    if (data_lt_eager_threshold) {
+        mpi_errno = MPIDI_OFI_am_isend_short(dreq->rank, dreq->comm, dreq->handler_id, send_buf,
+                                             dreq->data_sz, dreq->sreq);
     } else {
-        mpi_errno =
-            MPIDI_OFI_am_isend_long(dreq->rank, dreq->comm, dreq->handler_id,
-                                    MPIDI_OFI_AMREQUEST_HDR(dreq->sreq, am_hdr), dreq->am_hdr_sz,
-                                    send_buf, dreq->data_sz, dreq->sreq);
+        mpi_errno = MPIDI_OFI_am_isend_long(dreq->rank, dreq->comm, dreq->handler_id, send_buf,
+                                            dreq->data_sz, dreq->sreq);
     }
     MPIR_ERR_CHECK(mpi_errno);
 

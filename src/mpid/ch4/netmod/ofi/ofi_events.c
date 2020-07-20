@@ -520,12 +520,13 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *msg_hdr;
+    int incomplete = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_ISEND_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_ISEND_EVENT);
 
     msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
-    MPID_Request_complete(sreq);        /* FIXME: Should not call MPIDI in NM ? */
+    MPIR_cc_decr(sreq->cc_ptr, &incomplete);
 
     switch (msg_hdr->am_type) {
         case MPIDI_AMTYPE_LMT_ACK:
