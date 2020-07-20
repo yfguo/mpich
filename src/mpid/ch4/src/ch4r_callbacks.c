@@ -329,9 +329,13 @@ int MPIDIG_send_long_pipeline_origin_cb(MPIR_Request * sreq)
 int MPIDIG_send_long_rdma_read_origin_cb(MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_ORIGIN_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_ORIGIN_CB);
-    MPIR_Assert(0);
+
+    MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(sreq, req->lreq).datatype);
+    MPID_Request_complete(sreq);
+
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_ORIGIN_CB);
     return mpi_errno;
 }
@@ -640,14 +644,28 @@ int MPIDIG_send_long_rdma_read_target_msg_cb(int handler_id, void *am_hdr, void 
                                              MPIR_Request ** req)
 {
     int mpi_errno = MPI_SUCCESS;
-    int is_done = 0;
     MPIR_Request *rreq;
     MPIDIG_send_long_rdma_read_msg_t *lmt_hdr = (MPIDIG_send_long_rdma_read_msg_t *) am_hdr;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_TARGET_MSG_CB);
 
-    MPIR_Assert(0);
+    rreq = (MPIR_Request *) lmt_hdr->rreq_ptr;
+    MPIR_Assert(rreq);
+
+    MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+
+    MPIDIG_recv_type_init(in_data_sz, rreq);
+
+    if (is_async) {
+        *req = rreq;
+    } else {
+        MPIDIG_recv_copy(data, rreq);
+        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
+    }
+
+
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_SEND_LONG_RDMA_READ_TARGET_MSG_CB);
     return mpi_errno;
 }
@@ -738,6 +756,28 @@ int do_send_long_pipeline(MPIR_Request * sreq, MPIR_Request * rreq)
     return mpi_errno;
 }
 
+int do_send_long_rdma_read(MPIR_Request * sreq, MPIR_Request * rreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDIG_send_long_rdma_read_msg_t send_hdr;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_SEND_LONG_RDMA_READ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_SEND_LONG_RDMA_READ);
+
+    send_hdr.rreq_ptr = rreq;
+
+    mpi_errno =
+        MPIDI_NM_am_isend_rdma_read(MPIDIG_REQUEST(sreq, req->lreq).context_id,
+                                    MPIDIG_REQUEST(sreq, rank), MPIDIG_SEND_LONG_RDMA_READ,
+                                    &send_hdr, sizeof(send_hdr),
+                                    MPIDIG_REQUEST(sreq, req->lreq).src_buf,
+                                    MPIDIG_REQUEST(sreq, req->lreq).count,
+                                    MPIDIG_REQUEST(sreq, req->lreq).datatype, sreq);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DO_SEND_LONG_RDMA_READ);
+    return mpi_errno;
+}
+
 int MPIDIG_send_long_ack_target_msg_cb(int handler_id, void *am_hdr, void *data,
                                        MPI_Aint in_data_sz, int is_local, int is_async,
                                        MPIR_Request ** req)
@@ -759,7 +799,8 @@ int MPIDIG_send_long_ack_target_msg_cb(int handler_id, void *am_hdr, void *data,
             mpi_errno = do_send_long_pipeline(sreq, msg_hdr->rreq_ptr);
             break;
         case MPIDIG_SEND_LONG_RDMA_READ:
-            MPIR_Assert(0);
+            mpi_errno = do_send_long_rdma_read(sreq, msg_hdr->rreq_ptr);
+            break;
         default:
             MPIR_Assert(0);
     }

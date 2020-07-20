@@ -91,6 +91,10 @@ typedef struct MPIDIG_send_long_pipeline_msg_t {
     MPIR_Request *rreq_ptr;
 } MPIDIG_send_long_pipeline_msg_t;
 
+typedef struct MPIDIG_send_long_rdma_read_msg_t {
+    MPIR_Request *rreq_ptr;
+} MPIDIG_send_long_rdma_read_msg_t;
+
 typedef struct MPIDIG_ssend_req_msg_t {
     MPIDIG_hdr_t hdr;
     MPIR_Request *sreq_ptr;
