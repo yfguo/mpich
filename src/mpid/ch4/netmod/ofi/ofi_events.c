@@ -18,7 +18,7 @@ static int chunk_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
 static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
 static int accept_probe_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
-static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
+static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
 static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
 static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
@@ -516,15 +516,20 @@ static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq
     return MPI_SUCCESS;
 }
 
-static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
+static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *msg_hdr;
+    MPIDI_OFI_am_send_request_t *send_req;
+    MPIR_Request *sreq;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_ISEND_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_ISEND_EVENT);
 
-    msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
+    send_req = MPL_container_of(wc->op_context, MPIDI_OFI_am_send_request_t, context);
+    sreq = send_req->parent;
+
+    msg_hdr = &send_req->req_hdr.msg_hdr;
     MPID_Request_complete(sreq);        /* FIXME: Should not call MPIDI in NM ? */
 
     switch (msg_hdr->am_type) {
@@ -537,9 +542,9 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
     }
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool,
-                                      MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer));
-    MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
+                                      send_req->req_hdr.pack_buffer);
 
+    MPIDI_OFI_am_release_send_request(send_req);
     mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
 
     MPIR_ERR_CHECK(mpi_errno);
