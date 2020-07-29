@@ -29,7 +29,7 @@ cvars:
 
 #define MPIDIG_AM_SEND_HDR_SIZE  sizeof(MPIDIG_hdr_t)
 
-static inline int mpidig_eager_limit(int is_local)
+static inline int mpidig_eager_limit(int is_local, int payload_am_hdr_sz)
 {
     if (MPIR_CVAR_CH4_EAGER_MAX_MSG_SIZE > 0) {
         return MPIR_CVAR_CH4_EAGER_MAX_MSG_SIZE;
@@ -46,6 +46,7 @@ static inline int mpidig_eager_limit(int is_local)
     }
 #endif
     thresh -= MPIDIG_AM_SEND_HDR_SIZE;
+    thresh -= payload_am_hdr_sz;
     MPIR_Assert(thresh > 0);
 
     return thresh;
@@ -79,12 +80,12 @@ static inline int MPIDIG_isend_impl_new(const void *buf, MPI_Aint count, MPI_Dat
 static inline int MPIDIG_do_ssend(const void *buf, MPI_Aint count, MPI_Datatype datatype,
                                   int rank, int tag, MPIR_Comm * comm, int context_offset,
                                   MPIDI_av_entry_t * addr, MPIR_Request ** request,
-                                  MPIR_Errflag_t errflag);
+                                  MPIR_Errflag_t errflag, int protocol);
 
 static inline int MPIDIG_do_ssend(const void *buf, MPI_Aint count, MPI_Datatype datatype,
                                   int rank, int tag, MPIR_Comm * comm, int context_offset,
                                   MPIDI_av_entry_t * addr, MPIR_Request ** request,
-                                  MPIR_Errflag_t errflag)
+                                  MPIR_Errflag_t errflag, int protocol)
 {
     int mpi_errno = MPI_SUCCESS, c;
     MPIR_Request *sreq = *request;
@@ -99,10 +100,6 @@ static inline int MPIDIG_do_ssend(const void *buf, MPI_Aint count, MPI_Datatype 
     *request = sreq;
 
     MPIDIG_ssend_req_msg_t am_hdr;
-    am_hdr.hdr.src_rank = comm->rank;
-    am_hdr.hdr.tag = tag;
-    am_hdr.hdr.context_id = comm->context_id + context_offset;
-    am_hdr.hdr.error_bits = errflag;
     am_hdr.sreq_ptr = sreq;
 
 #ifdef HAVE_DEBUGGER_SUPPORT
@@ -111,20 +108,10 @@ static inline int MPIDIG_do_ssend(const void *buf, MPI_Aint count, MPI_Datatype 
     MPIDIG_REQUEST(sreq, count) = count;
 #endif
 
-    /* Increment the completion counter once to account for the extra message that needs to come
-     * back from the receiver to indicate completion. */
-    MPIR_cc_incr(sreq->cc_ptr, &c);
+    mpi_errno = MPIDIG_isend_impl_new(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                      request, errflag, MPIDIG_SSEND_REQ, &am_hdr, sizeof(am_hdr),
+                                      protocol);
 
-#ifndef MPIDI_CH4_DIRECT_NETMOD
-    if (MPIDI_av_is_local(addr)) {
-        mpi_errno = MPIDI_SHM_am_isend(rank, comm, MPIDIG_SSEND_REQ, &am_hdr, sizeof(am_hdr),
-                                       buf, count, datatype, sreq);
-    } else
-#endif
-    {
-        mpi_errno = MPIDI_NM_am_isend(rank, comm, MPIDIG_SSEND_REQ, &am_hdr, sizeof(am_hdr),
-                                      buf, count, datatype, sreq);
-    }
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
@@ -593,8 +580,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_ssend_new(const void *buf, MPI_Aint coun
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_SSEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
 
-    mpi_errno = MPIDIG_isend_impl_new(buf, count, datatype, rank, tag, comm, context_offset, addr,
-                                      request, MPIR_ERR_NONE, -1, NULL, 0, protocol);
+    mpi_errno = MPIDIG_do_ssend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                request, MPIR_ERR_NONE, protocol);
+
 
     MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_SSEND);
@@ -612,8 +600,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_issend_new(const void *buf, MPI_Aint cou
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_ISSEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
 
-    mpi_errno = MPIDIG_isend_impl_new(buf, count, datatype, rank, tag, comm, context_offset, addr,
-                                      request, MPIR_ERR_NONE, -1, NULL, 0, protocol);
+    mpi_errno = MPIDIG_do_ssend(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                request, MPIR_ERR_NONE, protocol);
+
 
     MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_ISSEND);
