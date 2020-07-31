@@ -158,7 +158,8 @@ int MPIDIG_am_init(void)
     MPIDIG_am_reg_cb(MPIDIG_SEND_LONG_LMT,
                      &MPIDIG_send_long_lmt_origin_cb, &MPIDIG_send_long_lmt_target_msg_cb);
     /* pipeline protocol */
-    MPIDIG_am_reg_cb(MPIDIG_SEND_PIPELINE_RTS, NULL, MPIDIG_send_pipeline_rts_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_SEND_PIPELINE_RTS,
+                     MPIDIG_send_pipeline_rts_origin_cb, MPIDIG_send_pipeline_rts_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_PIPELINE_CTS, NULL, MPIDIG_send_pipeline_cts_target_msg_cb);
     MPIDIG_am_reg_cb(MPIDIG_SEND_PIPELINE_SEG,
                      MPIDIG_send_pipeline_seg_origin_cb, MPIDIG_send_pipeline_seg_target_msg_cb);
