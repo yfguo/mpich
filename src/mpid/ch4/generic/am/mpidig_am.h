@@ -130,7 +130,8 @@ int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code);
 
 int MPIDIG_am_check_init(void);
 
-static inline bool MPIDIG_am_check_size_le_eager_limit(size_t data_sz, int am_op, int eager_limit)
+static inline bool MPIDIG_am_check_size_le_eager_limit(size_t data_sz, int am_op,
+                                                       size_t eager_limit)
 {
     switch (am_op) {
         case MPIDIG_SEND:
