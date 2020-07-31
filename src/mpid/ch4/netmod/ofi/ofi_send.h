@@ -8,6 +8,13 @@
 
 #include "ofi_impl.h"
 
+#define MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,       \
+                                          dt_true_lb, attr)                                       \
+do {                                                                                              \
+    MPIDI_Datatype_get_info((count), (datatype), (dt_contig), (data_sz), (dt_ptr), (dt_true_lb)); \
+    MPIR_GPU_query_pointer_attr((char *) buf + (dt_true_lb), &attr);                              \
+} while (0)
+
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_lightweight(const void *buf,
                                                         size_t data_sz,
                                                         uint64_t cq_data,
@@ -384,13 +391,28 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_send(const void *buf, MPI_Aint count,
                                                MPIR_Comm * comm, int context_offset,
                                                MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_SEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_SEND);
 
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_mpi_send(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit(data_sz, MPIDIG_SEND, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_mpi_send_new(buf, count, datatype, rank, tag, comm, context_offset, addr,
+                                        request, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
@@ -426,15 +448,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_send_coll(const void *buf, MPI_Aint count,
                                                 MPIDI_av_entry_t * addr,
                                                 MPIR_Request ** request, MPIR_Errflag_t * errflag)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_SEND_COLL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_SEND_COLL);
 
     /* NOTE: collective use vci 0 and critical section taken at ch4-layer */
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_send_coll(buf, count, datatype, rank, tag, comm, context_offset, addr, request,
-                             errflag);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit(data_sz, MPIDIG_SEND, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_send_coll_new(buf, count, datatype, rank, tag, comm, context_offset,
+                                         addr, request, errflag, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
@@ -454,13 +490,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_ssend(const void *buf, MPI_Aint count,
                                                 MPIR_Comm * comm, int context_offset,
                                                 MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_SSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_SSEND);
 
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_mpi_ssend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit
+            (data_sz, MPIDIG_SSEND_REQ, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_mpi_ssend_new(buf, count, datatype, rank, tag, comm, context_offset,
+                                         addr, request, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
@@ -481,13 +533,28 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_isend(const void *buf, MPI_Aint count,
                                                 MPIR_Comm * comm, int context_offset,
                                                 MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_ISEND);
 
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit(data_sz, MPIDIG_SEND, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_mpi_isend_new(buf, count, datatype, rank, tag, comm, context_offset,
+                                         addr, request, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
@@ -523,15 +590,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_isend_coll(const void *buf, MPI_Aint count
                                                  MPIDI_av_entry_t * addr,
                                                  MPIR_Request ** request, MPIR_Errflag_t * errflag)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_ISEND_COLL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_ISEND_COLL);
 
     /* NOTE: collective use vci 0 and critical section taken at ch4-layer */
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_isend_coll(buf, count, datatype, rank, tag, comm, context_offset, addr,
-                              request, errflag);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit(data_sz, MPIDIG_SEND, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_isend_coll_new(buf, count, datatype, rank, tag, comm, context_offset,
+                                          addr, request, errflag, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
@@ -551,13 +632,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_issend(const void *buf, MPI_Aint count
                                                  MPIR_Comm * comm, int context_offset,
                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    int mpi_errno;
+    int dt_contig, mpi_errno;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPIR_Datatype *dt_ptr;
+    MPL_pointer_attr_t attr;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_ISSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_ISSEND);
 
     if (!MPIDI_OFI_ENABLE_TAGGED) {
-        mpi_errno =
-            MPIDIG_mpi_issend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+        MPIDI_OFI_check_buf_datatype_attr(buf, count, datatype, dt_contig, data_sz, dt_ptr,
+                                          dt_true_lb, attr);
+        if (!MPIDIG_am_check_size_le_eager_limit
+            (data_sz, MPIDIG_SSEND_REQ, MPIDIF_OFI_am_eager_limit())) {
+            if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+                protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+            } else {
+                protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+            }
+        }
+        mpi_errno = MPIDIG_mpi_issend_new(buf, count, datatype, rank, tag, comm, context_offset,
+                                          addr, request, protocol);
     } else {
         int vni_src, vni_dst;
         MPIDI_OFI_SEND_VNIS(vni_src, vni_dst);  /* defined just above */
