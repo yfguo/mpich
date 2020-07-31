@@ -105,6 +105,16 @@ typedef struct MPIDIG_plreq_t {
     int seg_next;               /* segment number of the next to be sent */
 } MPIDIG_plreq_t;
 
+typedef struct MPIDIG_rdr_req_t {
+    /* rdma read send fields */
+    const void *src_buf;
+    MPI_Count count;
+    MPI_Datatype datatype;
+    int rank;
+    int tag;
+    MPIR_Context_id_t context_id;
+} MPIDIG_rdr_req_t;
+
 typedef struct MPIDIG_rreq_t {
     /* mrecv fields */
     void *mrcv_buffer;
@@ -192,6 +202,7 @@ typedef struct MPIDIG_req_ext_t {
         MPIDIG_sreq_t sreq;
         MPIDIG_lreq_t lreq;
         MPIDIG_plreq_t plreq;
+        MPIDIG_rdr_req_t rdr_req;
         MPIDIG_rreq_t rreq;
         MPIDIG_put_req_t preq;
         MPIDIG_get_req_t greq;

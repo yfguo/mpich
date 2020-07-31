@@ -519,13 +519,13 @@ static inline int MPIDIG_do_rdma_read_send(const void *buf, MPI_Aint count, MPI_
     carrier_am_hdr->data_sz = data_sz;
     carrier_am_hdr->sreq_ptr = sreq;
 
-    MPIDIG_REQUEST(sreq, req->lreq).src_buf = buf;
-    MPIDIG_REQUEST(sreq, req->lreq).count = count;
+    MPIDIG_REQUEST(sreq, req->rdr_req).src_buf = buf;
+    MPIDIG_REQUEST(sreq, req->rdr_req).count = count;
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
-    MPIDIG_REQUEST(sreq, req->lreq).datatype = datatype;
-    MPIDIG_REQUEST(sreq, req->lreq).tag = carrier_am_hdr->hdr.tag;
-    MPIDIG_REQUEST(sreq, req->lreq).rank = carrier_am_hdr->hdr.src_rank;
-    MPIDIG_REQUEST(sreq, req->lreq).context_id = carrier_am_hdr->hdr.context_id;
+    MPIDIG_REQUEST(sreq, req->rdr_req).datatype = datatype;
+    MPIDIG_REQUEST(sreq, req->rdr_req).tag = carrier_am_hdr->hdr.tag;
+    MPIDIG_REQUEST(sreq, req->rdr_req).rank = carrier_am_hdr->hdr.src_rank;
+    MPIDIG_REQUEST(sreq, req->rdr_req).context_id = carrier_am_hdr->hdr.context_id;
     MPIDIG_REQUEST(sreq, data_sz_left) = data_sz;
     MPIDIG_REQUEST(sreq, offset) = 0;
     MPIDIG_REQUEST(sreq, rank) = rank;
