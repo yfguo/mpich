@@ -43,6 +43,7 @@ static inline MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t kind, int 
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;
+    MPIDIG_REQUEST(req, send_ext) = NULL;
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_REQUEST_CREATE);
@@ -71,9 +72,26 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_init(MPIR_Request * req,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;
+    MPIDIG_REQUEST(req, send_ext) = NULL;
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_REQUEST_INIT);
     return req;
+}
+
+/* creating extension part for send request. freeing happens in request complete */
+MPL_STATIC_INLINE_PREFIX void MPIDIG_request_create_send_ext(MPIR_Request * req)
+{
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REQUEST_CREATE_SEND_EXT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REQUEST_CREATE_SEND_EXT);
+
+    MPIR_Assert(req != NULL);
+
+    MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_send_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.request_pool,
+                                       (void **) &MPIDIG_REQUEST(req, send_ext));
+    MPIR_Assert(MPIDIG_REQUEST(req, send_ext));
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_REQUEST_CREATE_SEND_EXT);
 }
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
