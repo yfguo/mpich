@@ -89,6 +89,12 @@ MPL_STATIC_INLINE_PREFIX int MPID_Request_complete(MPIR_Request * req)
         if (req->completion_notification)
             MPIR_cc_decr(req->completion_notification, &notify_counter);
 
+        if (MPIDIG_REQUEST(req, send_ext)) {
+            MPIDU_genq_private_pool_free_cell(MPIDI_global.request_pool,
+                                              MPIDIG_REQUEST(req, send_ext));
+            MPIDIG_REQUEST(req, send_ext) = NULL;
+        }
+
         if (MPIDIG_REQUEST(req, req)) {
             MPIDU_genq_private_pool_free_cell(MPIDI_global.request_pool, MPIDIG_REQUEST(req, req));
             MPIDIG_REQUEST(req, req) = NULL;

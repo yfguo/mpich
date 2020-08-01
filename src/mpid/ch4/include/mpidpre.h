@@ -72,6 +72,7 @@ typedef enum {
 #define MPIDIG_REQ_MATCHED (0x1 << 6)
 #define MPIDIG_REQ_LONG_RTS (0x1 << 7)
 #define MPIDIG_REQ_IN_PROGRESS (0x1 << 8)
+#define MPIDIG_REQ_PIPELINE_RTS (0x1 << 9)
 
 #define MPIDI_PARENT_PORT_KVSKEY "PARENT_ROOT_PORT_NAME"
 #define MPIDI_MAX_KVS_VALUE_LEN  4096
@@ -90,6 +91,17 @@ typedef struct MPIDIG_lreq_t {
     int tag;
     MPIR_Context_id_t context_id;
 } MPIDIG_lreq_t;
+
+typedef struct MPIDIG_plreq_t {
+    /* pipeline send fields */
+    const void *src_buf;
+    MPI_Count count;
+    MPI_Datatype datatype;
+    int rank;
+    int tag;
+    MPIR_Context_id_t context_id;
+    int seg_next;               /* segment number of the next to be sent */
+} MPIDIG_plreq_t;
 
 typedef struct MPIDIG_rreq_t {
     /* mrecv fields */
@@ -175,7 +187,6 @@ typedef struct MPIDIG_req_async {
 
 typedef struct MPIDIG_req_ext_t {
     union {
-        MPIDIG_sreq_t sreq;
         MPIDIG_lreq_t lreq;
         MPIDIG_rreq_t rreq;
         MPIDIG_put_req_t preq;
@@ -194,6 +205,16 @@ typedef struct MPIDIG_req_ext_t {
 
 } MPIDIG_req_ext_t;
 
+typedef struct MPIDIG_send_req_ext_t {
+    union {
+        MPIDIG_sreq_t sreq;
+        MPIDIG_plreq_t plreq;
+    };
+
+    size_t data_sz_left;
+    size_t offset;
+} MPIDIG_send_req_ext_t;
+
 typedef struct MPIDIG_req_t {
     union {
     MPIDI_NM_REQUEST_AM_DECL} netmod_am;
@@ -202,12 +223,14 @@ typedef struct MPIDIG_req_t {
     MPIDI_SHM_REQUEST_AM_DECL} shm_am;
 #endif
     MPIDIG_req_ext_t *req;
+    MPIDIG_send_req_ext_t *send_ext;
     void *buffer;
     MPI_Aint count;
     int rank;
     int tag;
     MPIR_Context_id_t context_id;
     MPI_Datatype datatype;
+    size_t first_seg_sz;
 } MPIDIG_req_t;
 
 /* Structure to capture arguments for pt2pt persistent communications */
