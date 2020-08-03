@@ -29,7 +29,7 @@ cvars:
 
 #define MPIDIG_AM_SEND_HDR_SIZE  sizeof(MPIDIG_hdr_t)
 
-static inline int mpidig_eager_limit(int is_local)
+static inline int MPIDIG_eager_limit(int is_local)
 {
     if (MPIR_CVAR_CH4_EAGER_MAX_MSG_SIZE > 0) {
         return MPIR_CVAR_CH4_EAGER_MAX_MSG_SIZE;
@@ -78,7 +78,7 @@ static inline int MPIDIG_isend_impl(const void *buf, MPI_Aint count, MPI_Datatyp
     if (type == MPIDIG_SSEND_REQ) {
         return MPIDIG_do_ssend(buf, count, datatype, rank, tag, comm, context_offset,
                                addr, request, errflag);
-    } else if (data_sz > mpidig_eager_limit(is_local)) {
+    } else if (data_sz > MPIDIG_eager_limit(is_local)) {
         return MPIDIG_do_rndv_send(buf, count, datatype, data_sz, rank, tag, comm, context_offset,
                                    addr, request, errflag);
     } else {
