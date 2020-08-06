@@ -281,6 +281,7 @@ static inline int MPIDI_POSIX_do_am_isend_pipeline(const void *data, MPI_Aint co
                                                    const void *am_hdr, MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
+    int c;
     int dt_contig = 0;
     size_t data_sz = 0, send_size = 0, eager_buf_sz = 0;
     MPIR_Datatype *dt_ptr = NULL;
@@ -291,6 +292,9 @@ static inline int MPIDI_POSIX_do_am_isend_pipeline(const void *data, MPI_Aint co
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_POSIX_DO_AM_ISEND_PIPELINE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POSIX_DO_AM_ISEND_PIPELINE);
+
+    /* inc cc to prevent the request being free prematurally */
+    MPIR_cc_incr(sreq->cc_ptr, &c);
 
     if (MPIDI_POSIX_global.deferred_am_isend_q) {
         /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */

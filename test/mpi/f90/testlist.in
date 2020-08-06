@@ -9,7 +9,7 @@ misc
 pt2pt
 datatype
 f90types
-@rmadir@
+#@rmadir@
 @spawndir@
 timer
 topo

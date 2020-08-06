@@ -5,7 +5,7 @@ datatype
 group
 pt2pt
 topo
-@rmadir@
+#@rmadir@
 @spawndir@
 @iodir@
 @f77dir@

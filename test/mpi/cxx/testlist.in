@@ -9,4 +9,4 @@ datatype
 topo
 @iodir@
 @spawndir@
-@rmadir@
+#@rmadir@
