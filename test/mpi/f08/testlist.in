@@ -3,7 +3,7 @@ pt2pt
 coll
 datatype
 comm
-@rmadir@
+#@rmadir@
 subarray
 topo
 ext

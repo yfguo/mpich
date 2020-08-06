@@ -3,6 +3,6 @@ comm
 init
 mpi_t
 @spawndir@
-@rmadir@
+#@rmadir@
 coll
 #perf
