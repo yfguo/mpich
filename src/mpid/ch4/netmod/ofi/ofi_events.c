@@ -681,11 +681,7 @@ static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_
         }
     }
 
-    mpi_errno = MPIDI_OFI_dispatch_ack(MPIDI_OFI_AMREQUEST_HDR(rreq, lmt_info).src_rank,
-                                       MPIDI_OFI_AMREQUEST_HDR(rreq, lmt_info).context_id,
-                                       MPIDI_OFI_AMREQUEST_HDR(rreq, lmt_info).sreq_ptr,
-                                       MPIDI_AMTYPE_LMT_ACK);
-
+    mpi_errno = MPIDIG_do_rdma_read_ack(rreq);
     MPIR_ERR_CHECK(mpi_errno);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
