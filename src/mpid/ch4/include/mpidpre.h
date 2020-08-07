@@ -113,6 +113,7 @@ typedef struct MPIDIG_rreq_t {
 
     uint64_t ignore;
     MPIR_Request *peer_req_ptr;
+    MPIR_Request *peer_payload_req_ptr;
     MPIR_Request *match_req;
     MPIR_Request *request;
 

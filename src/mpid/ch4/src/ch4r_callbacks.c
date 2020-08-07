@@ -436,6 +436,12 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_BUSY;
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_UNEXPECTED;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_hdr_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, in_data_sz, is_local, 0, &rreq);
+        }
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         MPIDI_REQUEST(rreq, is_local) = is_local;
 #endif
@@ -481,19 +487,20 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_hdr_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, in_data_sz, is_local, 0, &rreq);
+        }
     }
 
     rreq->status.MPI_ERROR = hdr->error_bits;
     MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
 
     MPIDIG_recv_type_init(in_data_sz, rreq);
-
-    if (is_async) {
-        *req = rreq;
-    } else {
-        MPIDIG_recv_copy(data, rreq);
-        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
-    }
+    MPIDIG_recv_copy(data, rreq);
+    MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_SEND_TARGET_MSG_CB);
@@ -554,12 +561,22 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
         MPIDIG_REQUEST(rreq, first_seg_sz) = in_data_sz;
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_PIPELINE_RTS;
         MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = rts_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, req->rreq.peer_payload_req_ptr) = NULL;
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
+        /* set default receive completion cb before dispatching payload handler, this allow the
+         * payload handler to overwrite it if needed */
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_pipeline_rts_msg_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, rts_hdr->data_sz, is_local, 0,
+                                                              &rreq);
+        }
         MPIDIG_recv_type_init(rts_hdr->data_sz, rreq);
         MPIDIG_recv_setup(rreq);
         /* receive in_data to unexp buffer. Not using MPIDIG_recv_copy_seg to avoid change
@@ -621,6 +638,13 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
          * `unexp_req` finally completes. (See MPIDI_recv_target_cmpl_cb) */
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_pipeline_rts_msg_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, rts_hdr->data_sz, is_local, 0,
+                                                              &rreq);
+        }
         MPIDIG_recv_type_init(rts_hdr->data_sz, rreq);
         MPIDIG_recv_setup(rreq);
         MPIDIG_recv_copy_seg(data, in_data_sz, rreq);
@@ -799,6 +823,13 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_rdma_read_req_msg_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, rdmar_hdr->data_sz, is_local, 0,
+                                                              &rreq);
+        }
         MPIDIG_recv_type_init(rdmar_hdr->data_sz, rreq);
         MPIDIG_recv_setup(rreq);
         /* receive mem reg info to unexp buffer. Not using MPIDIG_recv_copy_seg to avoid change
@@ -855,6 +886,13 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
          * `unexp_req` finally completes. (See MPIDI_recv_target_cmpl_cb) */
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
+        if (hdr->payload_handler_id != -1) {
+            int payload_handler_id = hdr->payload_handler_id;
+            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_rdma_read_req_msg_t);
+            MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                              data, rdmar_hdr->data_sz, is_local, 0,
+                                                              &rreq);
+        }
         MPIDIG_recv_type_init(rdmar_hdr->data_sz, rreq);
         MPIDIG_recv_setup(rreq);
 
@@ -989,21 +1027,9 @@ int MPIDIG_ssend_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SSEND_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SSEND_TARGET_MSG_CB);
 
-    /* receive message as normal send. Set is_async to 1 so we can update status */
-    MPIR_Request *rreq;
-    mpi_errno = MPIDIG_send_target_msg_cb(handler_id, am_hdr, data, in_data_sz, is_local, 1, &rreq);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    MPIR_Assert(rreq);
-    MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = msg_hdr->sreq_ptr;
-    MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_PEER_SSEND;
-
-    if (is_async) {
-        *req = rreq;
-    } else {
-        MPIDIG_recv_copy(data, rreq);
-        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
-    }
+    MPIDIG_REQUEST(*req, req->status) |= MPIDIG_REQ_PEER_SSEND;
+    MPIDIG_REQUEST(*req, req->rreq.peer_payload_req_ptr) = msg_hdr->sreq_ptr;
+    MPIR_Assert(msg_hdr->sreq_ptr);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_SSEND_TARGET_MSG_CB);
@@ -1023,9 +1049,6 @@ int MPIDIG_ssend_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI
 
     sreq = (MPIR_Request *) msg_hdr->sreq_ptr;
     MPID_Request_complete(sreq);
-
-    if (is_async)
-        *req = NULL;
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_SSEND_ACK_TARGET_MSG_CB);
     return mpi_errno;
