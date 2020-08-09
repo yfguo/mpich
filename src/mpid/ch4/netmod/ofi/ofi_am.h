@@ -261,9 +261,23 @@ static inline int MPIDI_NM_am_choose_protocol(const void *buf, MPI_Count count,
                                               MPI_Datatype datatype, size_t am_ext_sz,
                                               int handler_id)
 {
-    int protocol = 0;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    int dt_contig;
+    size_t data_sz;
+    MPI_Aint dt_true_lb;
+    MPL_pointer_attr_t attr;
 
-    MPIR_Assert(0);
+    MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);
+    MPIR_GPU_query_pointer_attr((char *) buf, &attr);
+
+    if (!MPIDIG_am_check_size_le_eager_limit
+        (data_sz + am_ext_sz, handler_id, MPIDI_NM_am_eager_limit())) {
+        if (!dt_contig || attr.type == MPL_GPU_POINTER_DEV) {
+            protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+        } else {
+            protocol = MPIDIG_AM_PROTOCOL__RDMA_READ;
+        }
+    }
 
     return protocol;
 }
