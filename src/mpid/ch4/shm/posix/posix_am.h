@@ -452,8 +452,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_choose_protocol(const void *buf, MPI
                                                             int handler_id)
 {
     int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    size_t data_sz;
 
-    MPIR_Assert(0);
+    MPIDI_Datatype_check_size(datatype, count, data_sz);
+    if (!MPIDIG_am_check_size_le_eager_limit
+        (data_sz + am_ext_sz, handler_id, MPIDI_POSIX_am_eager_limit())) {
+        protocol = MPIDIG_AM_PROTOCOL__PIPELINE;
+    }
 
     return protocol;
 }
