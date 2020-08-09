@@ -122,8 +122,41 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_put(const void *origin_addr,
                                               int target_count, MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * addr)
 {
-    return MPIDIG_mpi_put(origin_addr, origin_count, origin_datatype, target_rank, target_disp,
-                          target_count, target_datatype, win);
+    int mpi_errno = MPI_SUCCESS;
+    int target_dt_contig;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    MPIR_Datatype *dt_ptr = NULL;
+
+    MPIDI_Datatype_get_contig_dt_ptr(target_datatype, target_dt_contig, dt_ptr);
+    if (MPIR_DATATYPE_IS_PREDEFINED(target_datatype) || target_dt_contig) {
+        protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype, 0,
+                                               MPIDIG_PUT_REQ);
+        mpi_errno = MPIDIG_mpi_put_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                       target_disp, target_count, target_datatype, addr, win, 0, 0,
+                                       protocol);
+    } else {
+        int flattened_sz = 0;
+        int dummy_host_buf;
+        MPIR_Typerep_flatten_size(dt_ptr, &flattened_sz);
+        int am_hdr_max_size = MPIDI_NM_am_hdr_max_sz();
+        if (sizeof(MPIDIG_put_msg_t) + flattened_sz <= am_hdr_max_size) {
+            protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype,
+                                                   flattened_sz, MPIDIG_PUT_REQ);
+            mpi_errno = MPIDIG_mpi_put_new(origin_addr, origin_count, origin_datatype,
+                                           target_rank, target_disp, target_count,
+                                           target_datatype, addr, win, flattened_sz, 0, protocol);
+        } else {
+            /* we should check the flattened_dt as the buffer. But we know it is always on host
+             * memory. So use dummy_host_buf for checking here and defer the actual flattening
+             * to later time. */
+            protocol = MPIDI_NM_am_choose_protocol(&dummy_host_buf, flattened_sz, MPI_BYTE, 0,
+                                                   MPIDIG_PUT_DT_REQ);
+            mpi_errno = MPIDIG_mpi_put_new(origin_addr, origin_count, origin_datatype,
+                                           target_rank, target_disp, target_count,
+                                           target_datatype, addr, win, flattened_sz, 1, protocol);
+        }
+    }
+    return mpi_errno;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr,
@@ -134,8 +167,31 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_get(void *origin_addr,
                                               int target_count, MPI_Datatype target_datatype,
                                               MPIR_Win * win, MPIDI_av_entry_t * addr)
 {
-    return MPIDIG_mpi_get(origin_addr, origin_count, origin_datatype, target_rank, target_disp,
-                          target_count, target_datatype, win);
+    int mpi_errno = MPI_SUCCESS;
+    int target_dt_contig;
+    int dummy_host_buf;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    int flattened_sz = 0;
+    MPIR_Datatype *dt_ptr = NULL;
+    MPIDI_Datatype_get_contig_dt_ptr(target_datatype, target_dt_contig, dt_ptr);
+    if (MPIR_DATATYPE_IS_PREDEFINED(target_datatype) || target_dt_contig) {
+        protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype, 0,
+                                               MPIDIG_GET_REQ);
+        mpi_errno = MPIDIG_mpi_get_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                       target_disp, target_count, target_datatype, addr, win, 0,
+                                       protocol);
+    } else {
+        MPIR_Typerep_flatten_size(dt_ptr, &flattened_sz);
+        /* we should check the flattened_dt as the buffer. But we know it is always on host
+         * memory. So use dummy_host_buf for checking here and defer the actual flattening
+         * to later time. */
+        protocol = MPIDI_NM_am_choose_protocol(&dummy_host_buf, flattened_sz, MPI_BYTE, 0,
+                                               MPIDIG_GET_REQ);
+        mpi_errno = MPIDIG_mpi_get_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                       target_disp, target_count, target_datatype, addr, win,
+                                       flattened_sz, protocol);
+    }
+    return mpi_errno;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rput(const void *origin_addr,
@@ -148,8 +204,43 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rput(const void *origin_addr,
                                                MPIR_Win * win,
                                                MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    return MPIDIG_mpi_rput(origin_addr, origin_count, origin_datatype, target_rank,
-                           target_disp, target_count, target_datatype, win, request);
+    int mpi_errno = MPI_SUCCESS;
+    int target_dt_contig;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    MPIR_Datatype *dt_ptr = NULL;
+
+    MPIDI_Datatype_get_contig_dt_ptr(target_datatype, target_dt_contig, dt_ptr);
+    if (MPIR_DATATYPE_IS_PREDEFINED(target_datatype) || target_dt_contig) {
+        protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype, 0,
+                                               MPIDIG_PUT_REQ);
+        mpi_errno = MPIDIG_mpi_rput_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                        target_disp, target_count, target_datatype, addr, win,
+                                        request, 0, 0, protocol);
+    } else {
+        int flattened_sz = 0;
+        int dummy_host_buf;
+        MPIR_Typerep_flatten_size(dt_ptr, &flattened_sz);
+        int am_hdr_max_size = MPIDI_NM_am_hdr_max_sz();
+        if (sizeof(MPIDIG_put_msg_t) + flattened_sz <= am_hdr_max_size) {
+            protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype,
+                                                   flattened_sz, MPIDIG_PUT_REQ);
+            mpi_errno = MPIDIG_mpi_rput_new(origin_addr, origin_count, origin_datatype,
+                                            target_rank, target_disp, target_count,
+                                            target_datatype, addr, win, request, flattened_sz, 0,
+                                            protocol);
+        } else {
+            /* we should check the flattened_dt as the buffer. But we know it is always on host
+             * memory. So use dummy_host_buf for checking here and defer the actual flattening
+             * to later time. */
+            protocol = MPIDI_NM_am_choose_protocol(&dummy_host_buf, flattened_sz, MPI_BYTE, 0,
+                                                   MPIDIG_PUT_DT_REQ);
+            mpi_errno = MPIDIG_mpi_rput_new(origin_addr, origin_count, origin_datatype,
+                                            target_rank, target_disp, target_count,
+                                            target_datatype, addr, win, request, flattened_sz, 1,
+                                            protocol);
+        }
+    }
+    return mpi_errno;
 }
 
 
@@ -220,8 +311,31 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_rget(void *origin_addr,
                                                MPIR_Win * win,
                                                MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    return MPIDIG_mpi_rget(origin_addr, origin_count, origin_datatype, target_rank,
-                           target_disp, target_count, target_datatype, win, request);
+    int mpi_errno = MPI_SUCCESS;
+    int target_dt_contig;
+    int dummy_host_buf;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+    int flattened_sz = 0;
+    MPIR_Datatype *dt_ptr = NULL;
+    MPIDI_Datatype_get_contig_dt_ptr(target_datatype, target_dt_contig, dt_ptr);
+    if (MPIR_DATATYPE_IS_PREDEFINED(target_datatype) || target_dt_contig) {
+        protocol = MPIDI_NM_am_choose_protocol(origin_addr, origin_count, origin_datatype, 0,
+                                               MPIDIG_GET_REQ);
+        mpi_errno = MPIDIG_mpi_rget_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                        target_disp, target_count, target_datatype, addr, win,
+                                        request, 0, protocol);
+    } else {
+        MPIR_Typerep_flatten_size(dt_ptr, &flattened_sz);
+        /* we should check the flattened_dt as the buffer. But we know it is always on host
+         * memory. So use dummy_host_buf for checking here and defer the actual flattening
+         * to later time. */
+        protocol = MPIDI_NM_am_choose_protocol(&dummy_host_buf, flattened_sz, MPI_BYTE, 0,
+                                               MPIDIG_GET_REQ);
+        mpi_errno = MPIDIG_mpi_rget_new(origin_addr, origin_count, origin_datatype, target_rank,
+                                        target_disp, target_count, target_datatype, addr, win,
+                                        request, flattened_sz, protocol);
+    }
+    return mpi_errno;
 }
 
 

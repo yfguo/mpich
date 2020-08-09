@@ -136,6 +136,9 @@ static inline int MPIDIG_do_eager_send_new(const void *buf, MPI_Aint count, MPI_
     void *send_am_hdr = &am_hdr;
     size_t send_am_hdr_sz = sizeof(MPIDIG_hdr_t);
 
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_EAGER_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_EAGER_SEND);
+
     if (payload_handler_id != -1) {
         /* this is not a non-regular AM send */
         payload_req = *request;
@@ -201,6 +204,7 @@ static inline int MPIDIG_do_eager_send_new(const void *buf, MPI_Aint count, MPI_
     if (payload_handler_id != -1) {
         MPL_free(send_am_hdr);
     }
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DO_EAGER_SEND);
     return mpi_errno;
 
   fn_fail:
@@ -222,6 +226,9 @@ static inline int MPIDIG_do_pipeline_send(const void *buf, MPI_Aint count, MPI_D
     MPIDIG_send_pipeline_rts_msg_t *carrier_am_hdr = &am_hdr;
     void *send_am_hdr = &am_hdr;
     size_t send_am_hdr_sz = sizeof(MPIDIG_send_pipeline_rts_msg_t);
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_PIPELINE_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_PIPELINE_SEND);
 
     if (payload_handler_id != -1) {
         /* this is not a non-regular AM send, create carrier request and message header */
@@ -303,6 +310,7 @@ static inline int MPIDIG_do_pipeline_send(const void *buf, MPI_Aint count, MPI_D
     if (payload_handler_id != -1) {
         MPL_free(send_am_hdr);
     }
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DO_PIPELINE_SEND);
     return mpi_errno;
 
   fn_fail:
@@ -323,6 +331,9 @@ static inline int MPIDIG_do_rdma_read_send(const void *buf, MPI_Aint count, MPI_
     MPIDIG_send_rdma_read_req_msg_t *carrier_am_hdr = &am_hdr;
     void *send_am_hdr = &am_hdr;
     size_t send_am_hdr_sz = sizeof(MPIDIG_send_rdma_read_req_msg_t);
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_RDMA_READ_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_RDMA_READ_SEND);
 
     if (payload_handler_id != -1) {
         /* this is not a non-regular AM send, create carrier request and message header */
@@ -396,6 +407,7 @@ static inline int MPIDIG_do_rdma_read_send(const void *buf, MPI_Aint count, MPI_
     if (payload_handler_id != -1) {
         MPL_free(send_am_hdr);
     }
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DO_RDMA_READ_SEND);
     return mpi_errno;
 
   fn_fail:

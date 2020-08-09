@@ -15,7 +15,7 @@ int MPIDIG_do_pipeline_cts(MPIR_Request * rreq)
     int mpi_errno = MPI_SUCCESS;
 
     MPIDIG_send_pipeline_cts_msg_t am_hdr;
-    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr));
+    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->peer_req_ptr));
     am_hdr.rreq_ptr = rreq;
     MPIR_Assert((void *) am_hdr.sreq_ptr != NULL);
 
@@ -66,7 +66,7 @@ int MPIDIG_do_rdma_read_ack(MPIR_Request * rreq)
     int mpi_errno = MPI_SUCCESS;
 
     MPIDIG_send_rdma_read_ack_msg_t am_hdr;
-    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr));
+    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->peer_req_ptr));
     MPIR_Assert((void *) am_hdr.sreq_ptr != NULL);
 
     int rank = MPIDIG_REQUEST(rreq, rank);
@@ -99,7 +99,7 @@ int MPIDIG_do_rdma_read_nak(MPIR_Request * rreq)
     int mpi_errno = MPI_SUCCESS;
 
     MPIDIG_send_rdma_read_nak_msg_t am_hdr;
-    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr));
+    am_hdr.sreq_ptr = (MPIDIG_REQUEST(rreq, req->peer_req_ptr));
     am_hdr.rreq_ptr = rreq;
     am_hdr.preferred_protocols = MPIDIG_AM_PROTOCOL__PIPELINE;
     MPIR_Assert((void *) am_hdr.sreq_ptr != NULL);
@@ -386,9 +386,30 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     MPIR_Comm *root_comm;
     MPIDIG_hdr_t *hdr = (MPIDIG_hdr_t *) am_hdr;
     void *pack_buf = NULL;
+    int payload_handler_id = hdr->payload_handler_id;
+    void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_hdr_t);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_TARGET_MSG_CB);
+
+    /* determine if we need to handle the RTS as RMA or PT2PT */
+    if (payload_handler_id >= MPIDIG_PUT_REQ && payload_handler_id <= MPIDIG_FETCH_OP) {
+        MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                          data, in_data_sz, is_local, 0, &rreq);
+
+        MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
+        MPIDIG_REQUEST(rreq, tag) = hdr->tag;
+        MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
+        rreq->status.MPI_ERROR = hdr->error_bits;
+        MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
+
+        MPIDIG_recv_copy(data, rreq);
+        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
+
+        goto fn_exit;
+    }
+
+    /* handle as PT2PT */
     root_comm = MPIDIG_context_id_to_comm(hdr->context_id);
     if (root_comm) {
       root_comm_retry:
@@ -437,8 +458,6 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_UNEXPECTED;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_hdr_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, in_data_sz, is_local, 0, &rreq);
         }
@@ -488,8 +507,6 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_hdr_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, in_data_sz, is_local, 0, &rreq);
         }
@@ -519,10 +536,35 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
     MPIR_Comm *root_comm;
     MPIDIG_hdr_t *hdr = (MPIDIG_hdr_t *) am_hdr;
     MPIDIG_send_pipeline_rts_msg_t *rts_hdr = (MPIDIG_send_pipeline_rts_msg_t *) am_hdr;
+    int payload_handler_id = hdr->payload_handler_id;
+    void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_pipeline_rts_msg_t);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_PIPELINE_RTS_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_PIPELINE_RTS_TARGET_MSG_CB);
 
+    /* determine if we need to handle the RTS as RMA or PT2PT */
+    if (payload_handler_id >= MPIDIG_PUT_REQ && payload_handler_id <= MPIDIG_FETCH_OP) {
+        MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                          data, rts_hdr->data_sz, is_local, 0,
+                                                          &rreq);
+
+        MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_PIPELINE_RTS;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rts_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
+        MPIDIG_REQUEST(rreq, tag) = hdr->tag;
+        MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
+        MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
+
+        MPIDIG_recv_setup(rreq);
+        MPIDIG_recv_copy_seg(data, in_data_sz, rreq);
+
+        mpi_errno = MPIDIG_do_pipeline_cts(rreq);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        goto fn_exit;
+    }
+
+    /* handle as PT2PT */
     root_comm = MPIDIG_context_id_to_comm(hdr->context_id);
   root_comm_retry:
     if (root_comm) {
@@ -560,8 +602,8 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
         MPIDIG_REQUEST(rreq, count) = rts_hdr->data_sz;
         MPIDIG_REQUEST(rreq, first_seg_sz) = in_data_sz;
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_PIPELINE_RTS;
-        MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = rts_hdr->sreq_ptr;
-        MPIDIG_REQUEST(rreq, req->rreq.peer_payload_req_ptr) = NULL;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rts_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, req->peer_payload_req_ptr) = NULL;
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
@@ -571,8 +613,6 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
          * payload handler to overwrite it if needed */
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_pipeline_rts_msg_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, rts_hdr->data_sz, is_local, 0,
                                                               &rreq);
@@ -629,7 +669,7 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
          * may remain valid by the time we send ack (using the comm).
          */
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_PIPELINE_RTS;
-        MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = rts_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rts_hdr->sreq_ptr;
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
@@ -639,8 +679,6 @@ int MPIDIG_send_pipeline_rts_target_msg_cb(int handler_id, void *am_hdr, void *d
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_pipeline_rts_msg_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, rts_hdr->data_sz, is_local, 0,
                                                               &rreq);
@@ -777,10 +815,34 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
     MPIR_Comm *root_comm;
     MPIDIG_hdr_t *hdr = (MPIDIG_hdr_t *) am_hdr;
     MPIDIG_send_rdma_read_req_msg_t *rdmar_hdr = (MPIDIG_send_rdma_read_req_msg_t *) am_hdr;
+    int payload_handler_id = hdr->payload_handler_id;
+    void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_rdma_read_req_msg_t);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_RDMA_READ_REQ_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_RDMA_READ_REQ_TARGET_MSG_CB);
 
+    /* determine if we need to handle the RTS as RMA or PT2PT */
+    if (payload_handler_id >= MPIDIG_PUT_REQ && payload_handler_id <= MPIDIG_FETCH_OP) {
+        MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
+                                                          data, rdmar_hdr->data_sz, is_local, 0,
+                                                          &rreq);
+
+        MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_RDMA_READ_REQ;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rdmar_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
+        MPIDIG_REQUEST(rreq, tag) = hdr->tag;
+        MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
+        MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_IN_PROGRESS;
+
+        MPIDIG_recv_setup(rreq);
+
+        mpi_errno = MPIDIG_do_rdma_read_recv(data, rdmar_hdr->data_sz, rreq);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        goto fn_exit;
+    }
+
+    /* handle as PT2PT */
     root_comm = MPIDIG_context_id_to_comm(hdr->context_id);
   root_comm_retry:
     if (root_comm) {
@@ -816,7 +878,7 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
         MPIDIG_REQUEST(rreq, count) = rdmar_hdr->data_sz;
         MPIDIG_REQUEST(rreq, first_seg_sz) = in_data_sz;        /* save mem reg info size */
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_RDMA_READ_REQ;
-        MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = rdmar_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rdmar_hdr->sreq_ptr;
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
@@ -824,8 +886,6 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_rdma_read_req_msg_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, rdmar_hdr->data_sz, is_local, 0,
                                                               &rreq);
@@ -877,7 +937,7 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
          * may remain valid by the time we send ack (using the comm).
          */
         MPIDIG_REQUEST(rreq, req->status) |= MPIDIG_REQ_RDMA_READ_REQ;
-        MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr) = rdmar_hdr->sreq_ptr;
+        MPIDIG_REQUEST(rreq, req->peer_req_ptr) = rdmar_hdr->sreq_ptr;
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
@@ -887,8 +947,6 @@ int MPIDIG_send_rdma_read_req_target_msg_cb(int handler_id, void *am_hdr, void *
         MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = recv_target_cmpl_cb;
         if (hdr->payload_handler_id != -1) {
-            int payload_handler_id = hdr->payload_handler_id;
-            void *payload_am_hdr = (char *) hdr + sizeof(MPIDIG_send_rdma_read_req_msg_t);
             MPIDIG_global.target_msg_cbs[payload_handler_id] (payload_handler_id, payload_am_hdr,
                                                               data, rdmar_hdr->data_sz, is_local, 0,
                                                               &rreq);
@@ -1028,7 +1086,7 @@ int MPIDIG_ssend_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SSEND_TARGET_MSG_CB);
 
     MPIDIG_REQUEST(*req, req->status) |= MPIDIG_REQ_PEER_SSEND;
-    MPIDIG_REQUEST(*req, req->rreq.peer_payload_req_ptr) = msg_hdr->sreq_ptr;
+    MPIDIG_REQUEST(*req, req->peer_payload_req_ptr) = msg_hdr->sreq_ptr;
     MPIR_Assert(msg_hdr->sreq_ptr);
 
   fn_exit:

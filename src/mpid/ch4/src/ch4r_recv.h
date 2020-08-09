@@ -15,10 +15,10 @@ static inline int MPIDIG_reply_ssend(MPIR_Request * rreq)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REPLY_SSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REPLY_SSEND);
     MPIR_cc_incr(rreq->cc_ptr, &c);
-    if (MPIDIG_REQUEST(rreq, req->rreq).peer_payload_req_ptr) {
-        ack_msg.sreq_ptr = MPIDIG_REQUEST(rreq, req->rreq.peer_payload_req_ptr);
+    if (MPIDIG_REQUEST(rreq, req->peer_payload_req_ptr)) {
+        ack_msg.sreq_ptr = MPIDIG_REQUEST(rreq, req->peer_payload_req_ptr);
     } else {
-        ack_msg.sreq_ptr = MPIDIG_REQUEST(rreq, req->rreq.peer_req_ptr);
+        ack_msg.sreq_ptr = MPIDIG_REQUEST(rreq, req->peer_req_ptr);
     }
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
