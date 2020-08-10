@@ -10,6 +10,7 @@
 #include "posix_am_impl.h"
 #include "posix_eager.h"
 #include "mpidu_genq.h"
+#include "shm.h"
 
 /* Enqueue a request header onto the postponed message queue. This is a helper function and most
  * likely shouldn't be used outside of this file. */
@@ -403,6 +404,58 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr_reply(MPIR_Context_id_t con
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_SEND_HDR_REPLY);
 
     return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend_pipeline_rts(int rank, MPIR_Comm * comm,
+                                                               MPIDI_POSIX_am_header_kind_t kind,
+                                                               int handler_id, const void *am_hdr,
+                                                               size_t am_hdr_sz, const void *data,
+                                                               MPI_Count count,
+                                                               MPI_Datatype datatype,
+                                                               MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_RTS);
+
+    return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend_pipeline_seg(MPIR_Context_id_t context_id,
+                                                               int src_rank,
+                                                               MPIDI_POSIX_am_header_kind_t kind,
+                                                               int handler_id, const void *am_hdr,
+                                                               size_t am_hdr_sz, const void *data,
+                                                               MPI_Count count,
+                                                               MPI_Datatype datatype,
+                                                               MPIR_Request * sreq)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISEND_PIPELINE_SEG);
+
+    return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_choose_protocol(const void *buf, MPI_Count count,
+                                                            MPI_Datatype datatype, size_t am_ext_sz,
+                                                            int handler_id)
+{
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
+    MPIR_Assert(0);
+
+    return protocol;
 }
 
 #endif /* POSIX_AM_H_INCLUDED */
