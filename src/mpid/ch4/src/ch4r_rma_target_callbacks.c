@@ -695,8 +695,10 @@ static int handle_get_acc_cmpl(MPIR_Request * rreq)
 
 static void handle_acc_data(MPI_Aint in_data_sz, MPIR_Request * rreq)
 {
+    int mpi_errno = MPI_SUCCESS;
     void *p_data = NULL;
     size_t data_sz;
+    MPIR_Datatype *dt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_HANDLE_ACC_DATA);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_HANDLE_ACC_DATA);
@@ -716,11 +718,8 @@ static void handle_acc_data(MPI_Aint in_data_sz, MPIR_Request * rreq)
     MPIDIG_REQUEST(rreq, req->areq.data) = p_data;
 
     if (MPIDIG_REQUEST(rreq, req->areq.flattened_dt)) {
-        /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
-        MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
-        MPIR_Assert(dt);
-        MPIR_Object_set_ref(dt, 1);
-        MPIR_Typerep_unflatten(dt, MPIDIG_REQUEST(rreq, req->areq.flattened_dt));
+        mpi_errno = MPIR_Typerep_unflatten(&dt, MPIDIG_REQUEST(rreq, req->areq.flattened_dt));
+        MPIR_Assert(mpi_errno == MPI_SUCCESS);
         MPIDIG_REQUEST(rreq, req->areq.target_datatype) = dt->handle;
     }
 
@@ -735,6 +734,7 @@ static int get_target_cmpl_cb(MPIR_Request * rreq)
     MPIDIG_get_ack_msg_t get_ack;
     MPIR_Win *win;
     MPIR_Context_id_t context_id;
+    MPIR_Datatype *dt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_GET_TARGET_CMPL_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_GET_TARGET_CMPL_CB);
@@ -768,13 +768,8 @@ static int get_target_cmpl_cb(MPIR_Request * rreq)
     }
 
     /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
-    MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
-    if (!dt) {
-        MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s",
-                             "MPIR_Datatype_mem");
-    }
-    MPIR_Object_set_ref(dt, 1);
-    MPIR_Typerep_unflatten(dt, MPIDIG_REQUEST(rreq, req->greq.flattened_dt));
+    mpi_errno = MPIR_Typerep_unflatten(&dt, MPIDIG_REQUEST(rreq, req->greq.flattened_dt));
+    MPIR_ERR_CHECK(mpi_errno);
     MPIDIG_REQUEST(rreq, req->greq.dt) = dt;
     MPIDIG_REQUEST(rreq, req->greq.count) /= dt->size;
 
@@ -1289,7 +1284,7 @@ int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     MPIR_Request *rreq = NULL;
     uintptr_t base;             /* Base address of the window */
     size_t offset;
-
+    MPIR_Datatype *dt;
     MPIR_Win *win;
     MPIDIG_put_msg_t *msg_hdr = (MPIDIG_put_msg_t *) am_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_TARGET_MSG_CB);
@@ -1316,14 +1311,8 @@ int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
 
     offset = win->disp_unit * msg_hdr->target_disp;
     if (msg_hdr->flattened_sz) {
-        /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
-        MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
-        if (!dt) {
-            MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s",
-                                 "MPIR_Datatype_mem");
-        }
-        MPIR_Object_set_ref(dt, 1);
-        MPIR_Typerep_unflatten(dt, (char *) am_hdr + sizeof(*msg_hdr));
+        mpi_errno = MPIR_Typerep_unflatten(&dt, (char *) am_hdr + sizeof(*msg_hdr));
+        MPIR_ERR_CHECK(mpi_errno);
         MPIDIG_REQUEST(rreq, req->preq.flattened_dt) = NULL;
         MPIDIG_REQUEST(rreq, req->preq.dt) = dt;
 
@@ -1587,6 +1576,7 @@ int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
     MPIDIG_put_dat_msg_t *msg_hdr = (MPIDIG_put_dat_msg_t *) am_hdr;
+    MPIR_Datatype *dt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_DATA_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_DATA_TARGET_MSG_CB);
@@ -1594,15 +1584,8 @@ int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
 
     rreq = (MPIR_Request *) msg_hdr->preq_ptr;
 
-    /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
-    MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
-    if (!dt) {
-        MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s",
-                             "MPIR_Datatype_mem");
-    }
-    /* Note: handle is filled in by MPIR_Handle_obj_alloc() */
-    MPIR_Object_set_ref(dt, 1);
-    MPIR_Typerep_unflatten(dt, MPIDIG_REQUEST(rreq, req->preq.flattened_dt));
+    mpi_errno = MPIR_Typerep_unflatten(&dt, MPIDIG_REQUEST(rreq, req->preq.flattened_dt));
+    MPIR_ERR_CHECK(mpi_errno);
     MPIDIG_REQUEST(rreq, req->preq.dt) = dt;
     MPIDIG_REQUEST(rreq, datatype) = dt->handle;
     MPIDIG_REQUEST(rreq, count) /= dt->size;
@@ -1750,6 +1733,7 @@ int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     size_t data_sz;
     void *p_data = NULL;
     MPIR_Win *win;
+    MPIR_Datatype *dt;
 
     MPIDIG_acc_req_msg_t *msg_hdr = (MPIDIG_acc_req_msg_t *) am_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_TARGET_MSG_CB);
@@ -1793,14 +1777,8 @@ int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     MPIDIG_REQUEST(rreq, rank) = msg_hdr->src_rank;
 
     if (msg_hdr->flattened_sz) {
-        /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
-        MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
-        if (!dt) {
-            MPIR_ERR_SETANDJUMP1(mpi_errno, MPI_ERR_OTHER, "**nomem", "**nomem %s",
-                                 "MPIR_Datatype_mem");
-        }
-        MPIR_Object_set_ref(dt, 1);
-        MPIR_Typerep_unflatten(dt, (char *) am_hdr + sizeof(*msg_hdr));
+        mpi_errno = MPIR_Typerep_unflatten(&dt, (char *) am_hdr + sizeof(*msg_hdr));
+        MPIR_ERR_CHECK(mpi_errno);
         MPIDIG_REQUEST(rreq, req->areq.target_datatype) = dt->handle;
     }
 
