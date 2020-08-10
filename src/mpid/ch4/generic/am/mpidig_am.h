@@ -173,9 +173,17 @@ static inline bool MPIDIG_am_check_size_le_eager_limit(size_t data_sz, int am_op
             return (data_sz + sizeof(MPIDIG_hdr_t) + sizeof(MPIDIG_get_ack_msg_t) <= eager_limit);
             break;
         case MPIDIG_ACC_REQ:
+            return (data_sz + sizeof(MPIDIG_hdr_t) + sizeof(MPIDIG_acc_req_msg_t) <= eager_limit);
+            break;
         case MPIDIG_ACC_ACK:
+            MPIR_Assert(0);
+            break;
         case MPIDIG_ACC_DT_REQ:
+            return (data_sz + sizeof(MPIDIG_hdr_t) + sizeof(MPIDIG_acc_req_msg_t) <= eager_limit);
+            break;
         case MPIDIG_ACC_DAT_REQ:
+            return (data_sz + sizeof(MPIDIG_hdr_t) + sizeof(MPIDIG_acc_dat_msg_t) <= eager_limit);
+            break;
         case MPIDIG_ACC_DT_ACK:
         case MPIDIG_GET_ACC_REQ:
         case MPIDIG_GET_ACC_ACK:
