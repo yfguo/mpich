@@ -1164,4 +1164,66 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_fetch_and_op_new(const void *origin_addr
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_compare_and_swap_new(const void *origin_addr,
+                                                             const void *compare_addr,
+                                                             void *result_addr,
+                                                             MPI_Datatype datatype,
+                                                             int target_rank, MPI_Aint target_disp,
+                                                             MPIDI_av_entry_t * av, MPIR_Win * win,
+                                                             int protocol)
+{
+    int mpi_errno = MPI_SUCCESS, c;
+    MPIR_Request *sreq = NULL;
+    MPIDIG_cswap_req_msg_t am_hdr;
+    size_t data_sz;
+    void *p_data;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_COMPARE_AND_SWAP);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_COMPARE_AND_SWAP);
+
+    MPIDIG_RMA_OP_CHECK_SYNC(target_rank, win);
+
+    MPIDI_Datatype_check_size(datatype, 1, data_sz);
+    if (data_sz == 0)
+        goto fn_exit;
+
+    p_data = MPL_malloc(data_sz * 2, MPL_MEM_BUFFER);
+    MPIR_Assert(p_data);
+    MPIR_Typerep_copy(p_data, (char *) origin_addr, data_sz);
+    MPIR_Typerep_copy((char *) p_data + data_sz, (char *) compare_addr, data_sz);
+
+    sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1);
+    MPIR_ERR_CHKANDSTMT(sreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
+
+    MPIDIG_REQUEST(sreq, req->creq.win_ptr) = win;
+    MPIDIG_REQUEST(sreq, req->creq.addr) = result_addr;
+    MPIDIG_REQUEST(sreq, req->creq.datatype) = datatype;
+    MPIDIG_REQUEST(sreq, req->creq.result_addr) = result_addr;
+    MPIDIG_REQUEST(sreq, req->creq.data) = p_data;
+    MPIDIG_REQUEST(sreq, rank) = target_rank;
+    MPIR_cc_incr(sreq->cc_ptr, &c);
+
+    MPIR_T_PVAR_TIMER_START(RMA, rma_amhdr_set);
+    am_hdr.target_disp = target_disp;
+    am_hdr.datatype = datatype;
+    am_hdr.req_ptr = sreq;
+    am_hdr.win_id = MPIDIG_WIN(win, win_id);
+    am_hdr.src_rank = win->comm_ptr->rank;
+    MPIR_T_PVAR_TIMER_END(RMA, rma_amhdr_set);
+
+    MPIDIG_win_cmpl_cnts_incr(win, target_rank, &sreq->completion_notification);
+    /* Increase remote completion counter for acc. */
+    MPIDIG_win_remote_acc_cmpl_cnt_incr(win, target_rank);
+
+    mpi_errno = MPIDIG_isend_impl_new(p_data, 2, datatype, target_rank,
+                                      0, win->comm_ptr, 0, av, &sreq, MPIR_ERR_NONE,
+                                      MPIDIG_CSWAP_REQ, &am_hdr, sizeof(am_hdr), protocol);
+    MPIR_ERR_CHECK(mpi_errno);
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_COMPARE_AND_SWAP);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 #endif /* MPIDIG_AM_RMA_H_INCLUDED */

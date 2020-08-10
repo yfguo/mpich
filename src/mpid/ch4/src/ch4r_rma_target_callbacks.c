@@ -1224,16 +1224,11 @@ int MPIDIG_cswap_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI
     MPIDI_Datatype_check_size(MPIDIG_REQUEST(rreq, req->creq.datatype), 1, data_sz);
     void *result_addr = MPIDIG_REQUEST(rreq, req->creq.result_addr);
 
-    MPIDIG_recv_init(1, in_data_sz, result_addr, data_sz, rreq);
+    MPIDIG_recv_init(1, 0, result_addr, data_sz, rreq);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = cswap_ack_target_cmpl_cb;
 
-    if (is_async) {
-        *req = rreq;
-    } else {
-        MPIDIG_recv_copy(data, rreq);
-        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
-    }
+    *req = rreq;
 
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_cas_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CSWAP_ACK_TARGET_MSG_CB);
@@ -1710,14 +1705,10 @@ int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
 
     MPIDIG_REQUEST(rreq, req->creq.data) = p_data;
 
-    MPIDIG_recv_init(1, in_data_sz, p_data, data_sz * 2, rreq);
+    MPIDIG_recv_init(1, 0, p_data, data_sz * 2, rreq);
 
-    if (is_async) {
-        *req = rreq;
-    } else {
-        MPIDIG_recv_copy(data, rreq);
-        MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
-    }
+    *req = rreq;
+
   fn_exit:
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_cas);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CSWAP_TARGET_MSG_CB);

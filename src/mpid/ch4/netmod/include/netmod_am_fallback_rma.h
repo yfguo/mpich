@@ -251,8 +251,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_compare_and_swap(const void *origin_ad
                                                            int target_rank, MPI_Aint target_disp,
                                                            MPIR_Win * win, MPIDI_av_entry_t * addr)
 {
-    return MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr, datatype,
-                                       target_rank, target_disp, win);
+    int mpi_errno = MPI_SUCCESS;
+    int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
+    protocol = MPIDI_NM_am_choose_protocol(origin_addr, 2, datatype, 0, MPIDIG_CSWAP_REQ);
+    return MPIDIG_mpi_compare_and_swap_new(origin_addr, compare_addr, result_addr, datatype,
+                                           target_rank, target_disp, addr, win, protocol);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_raccumulate(const void *origin_addr,

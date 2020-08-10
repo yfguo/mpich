@@ -673,8 +673,13 @@ static inline int MPIDI_NM_mpi_compare_and_swap(const void *origin_addr,
            !MPIDIG_WIN(win, info_args).disable_shm_accumulate ||
 #endif
            !MPIDI_OFI_ENABLE_RMA || !MPIDI_OFI_ENABLE_ATOMICS) {
-        mpi_errno = MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr, datatype,
-                                                target_rank, target_disp, win);
+        int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+
+      am_compare_and_swap:
+        protocol = MPIDI_NM_am_choose_protocol(origin_addr, 2, datatype, 0, MPIDIG_CSWAP_REQ);
+        mpi_errno = MPIDIG_mpi_compare_and_swap_new(origin_addr, compare_addr, result_addr,
+                                                    datatype, target_rank, target_disp, av, win,
+                                                    protocol);
         goto fn_exit;
     }
 
@@ -744,8 +749,7 @@ static inline int MPIDI_NM_mpi_compare_and_swap(const void *origin_addr,
          * For now, there is no FI flag to track atomic only ops, we use RMA level cntr. */
         MPIDI_OFI_win_do_progress(win);
     }
-    return MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr, datatype,
-                                       target_rank, target_disp, win);
+    goto am_compare_and_swap;
 }
 
 static inline int MPIDI_OFI_do_accumulate(const void *origin_addr,

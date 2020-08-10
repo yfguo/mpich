@@ -483,8 +483,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_compare_and_swap(const void *origin
     /* CH4 schedules operation only based on process locality.
      * Thus the target might not be in shared memory of the window.*/
     if (!MPIDIG_WIN(win, shm_allocated) && target_rank != win->comm_ptr->rank) {
-        mpi_errno = MPIDIG_mpi_compare_and_swap(origin_addr, compare_addr, result_addr,
-                                                datatype, target_rank, target_disp, win);
+        int protocol = MPIDIG_AM_PROTOCOL__EAGER;
+        MPIDI_av_entry_t *av = MPIDIU_comm_rank_to_av(win->comm_ptr, target_rank);
+
+        protocol = MPIDI_SHM_am_choose_protocol(origin_addr, 2, datatype, 0, MPIDIG_CSWAP_REQ);
+        mpi_errno = MPIDIG_mpi_compare_and_swap_new(origin_addr, compare_addr, result_addr,
+                                                    datatype, target_rank, target_disp, av, win,
+                                                    protocol);
         goto fn_exit;
     }
 
