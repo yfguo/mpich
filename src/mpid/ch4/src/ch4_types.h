@@ -90,7 +90,6 @@ typedef struct MPIDIG_send_pipeline_seg_msg_t {
 } MPIDIG_send_pipeline_seg_msg_t;
 
 typedef struct MPIDIG_ssend_req_msg_t {
-    MPIDIG_hdr_t hdr;
     MPIR_Request *sreq_ptr;
 } MPIDIG_ssend_req_msg_t;
 
