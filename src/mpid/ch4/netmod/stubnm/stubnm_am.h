@@ -77,4 +77,34 @@ static inline int MPIDI_NM_am_send_hdr_reply(MPIR_Context_id_t context_id, int s
     return MPI_SUCCESS;
 }
 
+static inline int MPIDI_NM_am_isend_pipeline_rts(int rank, MPIR_Comm * comm, int handler_id,
+                                                 const void *am_hdr, size_t am_hdr_sz,
+                                                 const void *data, MPI_Count count,
+                                                 MPI_Datatype datatype, MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_isend_pipeline_seg(MPIR_Context_id_t context_id, int src_rank,
+                                                 int handler_id, const void *am_hdr,
+                                                 size_t am_hdr_sz, const void *data,
+                                                 MPI_Count count, MPI_Datatype datatype,
+                                                 MPIR_Request * sreq)
+{
+    MPIR_Assert(0);
+    return MPI_SUCCESS;
+}
+
+static inline int MPIDI_NM_am_choose_protocol(const void *buf, MPI_Count count,
+                                              MPI_Datatype datatype, size_t am_ext_sz,
+                                              int handler_id)
+{
+    int protocol = 0;
+
+    MPIR_Assert(0);
+
+    return protocol;
+}
+
 #endif /* STUBNM_AM_H_INCLUDED */
