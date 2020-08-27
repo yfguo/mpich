@@ -89,6 +89,21 @@ typedef struct MPIDIG_send_pipeline_seg_msg_t {
     MPIR_Request *rreq_ptr;
 } MPIDIG_send_pipeline_seg_msg_t;
 
+typedef struct MPIDIG_send_rdma_read_req_msg_t {
+    MPIDIG_hdr_t hdr;
+    size_t data_sz;             /* Message size in bytes */
+    MPIR_Request *sreq_ptr;     /* Pointer value of the request object at the sender side */
+} MPIDIG_send_rdma_read_req_msg_t;
+
+typedef struct MPIDIG_send_rdma_read_ack_msg_t {
+    MPIR_Request *sreq_ptr;
+} MPIDIG_send_rdma_read_ack_msg_t;
+
+typedef struct MPIDIG_send_rdma_read_nak_msg_t {
+    MPIR_Request *sreq_ptr;
+    MPIR_Request *rreq_ptr;
+} MPIDIG_send_rdma_read_nak_msg_t;
+
 typedef struct MPIDIG_ssend_req_msg_t {
     MPIR_Request *sreq_ptr;
 } MPIDIG_ssend_req_msg_t;

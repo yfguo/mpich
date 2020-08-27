@@ -29,6 +29,20 @@ enum {
     MPIDIG_SEND_PIPELINE_CTS,
     MPIDIG_SEND_PIPELINE_SEG,
 
+    /* new RDMA read protocol, REQ, ACK and NAK. The sender will register the buffer with network
+     * and send memory registration info to the receiver. After getting the REQ, the receiver could
+     * start the data transmission by doing RDMA reads, or reject the RDMA read protocol by sending
+     * NAK, the NAK should contain a list of protocol that the receiver can accept.
+     * If the receiver starts the RDMA read transmission, it will send ACK after all the data is
+     * received. The sender will clean the memory registration and complete the send. If the sender
+     * receives a NAK, it will clean the memory registration and switch to the next protocol that is
+     * supported by the receiver (based on the list receiver sends in NAK). Note in the NAK case,
+     * the sender is not required to fallback to pipeline immediately. It could choose another
+     * protocol other than RDMA read and pipeline, if such a protocol is available. */
+    MPIDIG_SEND_RDMA_READ_REQ,
+    MPIDIG_SEND_RDMA_READ_ACK,
+    MPIDIG_SEND_RDMA_READ_NAK,
+
     MPIDIG_SSEND_REQ,
     MPIDIG_SSEND_ACK,
 
@@ -73,6 +87,12 @@ enum {
     MPIDI_OFI_INTERNAL_HANDLER_CONTROL,
 
     MPIDIG_HANDLER_STATIC_MAX
+};
+
+enum {
+    MPIDIG_AM_PROTOCOL__EAGER,
+    MPIDIG_AM_PROTOCOL__PIPELINE,
+    MPIDIG_AM_PROTOCOL__RDMA_READ,
 };
 
 typedef int (*MPIDIG_am_target_cmpl_cb) (MPIR_Request * req);
