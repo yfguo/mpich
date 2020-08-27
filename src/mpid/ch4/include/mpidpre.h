@@ -72,6 +72,7 @@ typedef enum {
 #define MPIDIG_REQ_MATCHED (0x1 << 6)
 #define MPIDIG_REQ_IN_PROGRESS (0x1 << 7)
 #define MPIDIG_REQ_PIPELINE_RTS (0x1 << 8)
+#define MPIDIG_REQ_RDMA_READ_REQ (0x1 << 9)
 
 #define MPIDI_PARENT_PORT_KVSKEY "PARENT_ROOT_PORT_NAME"
 #define MPIDI_MAX_KVS_VALUE_LEN  4096
@@ -91,6 +92,16 @@ typedef struct MPIDIG_plreq_t {
     MPIR_Context_id_t context_id;
     int seg_next;               /* segment number of the next to be sent */
 } MPIDIG_plreq_t;
+
+typedef struct MPIDIG_rdr_req_t {
+    /* rdma read send fields */
+    const void *src_buf;
+    MPI_Count count;
+    MPI_Datatype datatype;
+    int rank;
+    int tag;
+    MPIR_Context_id_t context_id;
+} MPIDIG_rdr_req_t;
 
 typedef struct MPIDIG_rreq_t {
     /* mrecv fields */
@@ -200,6 +211,7 @@ typedef struct MPIDIG_send_req_ext_t {
     union {
         MPIDIG_sreq_t sreq;
         MPIDIG_plreq_t plreq;
+        MPIDIG_rdr_req_t rdr_req;
     };
 
     size_t data_sz_left;
