@@ -132,6 +132,51 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_isend_pipeline_seg(MPIR_Context_id_t c
     return ret;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_isend_rdma_read_req(int rank, MPIR_Comm * comm,
+                                                              int handler_id, const void *am_hdr,
+                                                              size_t am_hdr_sz, const void *data,
+                                                              MPI_Count count,
+                                                              MPI_Datatype datatype,
+                                                              MPIR_Request * sreq)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_ISEND_RDMA_READ_REQ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_ISEND_RDMA_READ_REQ);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_ISEND_RDMA_READ_REQ);
+    return ret;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_recv_rdma_read(void *lmt_msg, size_t recv_data_sz,
+                                                         MPIR_Request * rreq)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_RECV_RDMA_READ);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_RECV_RDMA_READ);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_RECV_RDMA_READ);
+    return ret;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_rdma_read_unreg(MPIR_Request * sreq)
+{
+    int ret;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_RDMA_READ_UNREG);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_RDMA_READ_UNREG);
+
+    MPIR_Assert(0);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_RDMA_READ_UNREG);
+    return ret;
+}
+
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_SHM_am_hdr_max_sz(void)
 {
     int ret;
