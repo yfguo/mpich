@@ -235,6 +235,24 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_win_hash_clear(MPIR_Win * win)
         }                                                       \
     } while (0)
 
+#define MPIDI_Datatype_get_ptr_lb(count_, datatype_, dt_ptr_, dt_true_lb_) \
+    do {                                                                   \
+        if (IS_BUILTIN(datatype_)) {                                       \
+            (dt_ptr_)        = NULL;                                       \
+            (dt_true_lb_)    = 0;                                          \
+        } else {                                                           \
+            MPIR_Datatype_get_ptr((datatype_), (dt_ptr_));                 \
+            if (dt_ptr_)                                                   \
+            {                                                              \
+                (dt_true_lb_)    = (dt_ptr_)->true_lb;                     \
+            }                                                              \
+            else                                                           \
+            {                                                              \
+                (dt_true_lb_)    = 0;                                      \
+            }                                                              \
+        }                                                                  \
+    } while (0)
+
 #define MPIDI_Datatype_check_contig(datatype_,dt_contig_out_)           \
     do {                                                                \
         if (IS_BUILTIN(datatype_)) {                                    \
@@ -321,6 +339,25 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_win_hash_clear(MPIR_Win * win)
                 (dt_true_lb_)    = 0;                           \
             }                                                   \
         }                                                       \
+    } while (0)
+
+#define MPIDI_Datatype_check_contig_lb(datatype_,count_, dt_contig_out_, \
+                                       dt_true_lb_)                      \
+    do {                                                                 \
+        if (IS_BUILTIN(datatype_)) {                                     \
+            (dt_contig_out_) = TRUE;                                     \
+            (dt_true_lb_)    = 0;                                        \
+        } else {                                                         \
+            MPIR_Datatype *dt_ptr_;                                      \
+            MPIR_Datatype_get_ptr((datatype_), (dt_ptr_));               \
+            if (dt_ptr_) {                                               \
+                (dt_contig_out_) = (dt_ptr_)->is_contig;                 \
+                (dt_true_lb_)    = (dt_ptr_)->true_lb;                   \
+            } else {                                                     \
+                (dt_contig_out_) = 1;                                    \
+                (dt_true_lb_)    = 0;                                    \
+            }                                                            \
+        }                                                                \
     } while (0)
 
 /* Check both origin|target buffers' size. */
