@@ -74,10 +74,13 @@ typedef int (*MPIDIG_am_target_msg_cb) (int handler_id, void *am_hdr,
                                         void *data, MPI_Aint data_sz,
                                         int is_local, int is_async, MPIR_Request ** req);
 
+typedef MPIR_Request *MPIDIG_req_map_value_t;
+
 typedef struct MPIDIG_global_t {
     MPIDIG_am_target_msg_cb target_msg_cbs[MPIDI_AM_HANDLERS_MAX];
     MPIDIG_am_origin_cb origin_cbs[MPIDI_AM_HANDLERS_MAX];
 } MPIDIG_global_t;
+
 extern MPIDIG_global_t MPIDIG_global;
 
 void MPIDIG_am_reg_cb(int handler_id,
