@@ -167,6 +167,15 @@ typedef struct MPIDIG_req_async {
     struct iovec iov_one;       /* used with MPIDIG_RECV_CONTIG */
 } MPIDIG_rreq_async_t;
 
+typedef struct MPIDIG_sreq_async {
+    MPI_Datatype datatype;
+    size_t data_sz_left;
+    size_t offset;
+    int seg_issued;
+    int seg_fin;
+    bool started;
+} MPIDIG_sreq_async_t;
+
 typedef struct MPIDIG_req_ext_t {
     union {
         MPIDIG_sreq_t sreq;
@@ -177,7 +186,10 @@ typedef struct MPIDIG_req_ext_t {
         MPIDIG_acc_req_t areq;
     };
 
-    MPIDIG_rreq_async_t async;
+    union {
+        MPIDIG_rreq_async_t async;
+        MPIDIG_sreq_async_t send_async;
+    };
     struct iovec *iov;
     MPIDIG_req_cmpl_cb target_cmpl_cb;
     uint64_t seq_no;
