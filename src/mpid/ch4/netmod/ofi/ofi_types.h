@@ -425,6 +425,7 @@ typedef struct {
     /* Communication info for dynamic processes */
     MPIDI_OFI_conn_manager_t conn_mgr;
 
+    void *req_map;
     MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
 
     /* Capability settings */

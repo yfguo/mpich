@@ -545,7 +545,16 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use
                                       send_req->req_hdr.pack_buffer);
 
     MPIDI_OFI_am_release_send_request(send_req);
-    mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
+
+    if (msg_hdr->am_type == MPIDI_AMTYPE_PIPELINE) {
+        int is_done = MPIDIG_send_finish_seg(sreq);
+
+        if (is_done) {
+            mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
+        }
+    } else {
+        mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
+    }
 
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -619,6 +628,11 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
 
             MPIR_ERR_CHECK(mpi_errno);
 
+            break;
+        case MPIDI_AMTYPE_PIPELINE:
+            p_data = (char *) wc->buf + sizeof(*am_hdr) + am_hdr->am_hdr_sz;
+            mpi_errno = MPIDI_OFI_handle_pipeline(am_hdr, am_hdr + 1, p_data);
+            MPIR_ERR_CHECK(mpi_errno);
             break;
 
         case MPIDI_AMTYPE_LMT_REQ:
