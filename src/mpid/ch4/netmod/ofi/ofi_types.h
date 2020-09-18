@@ -208,6 +208,18 @@ typedef struct {
     int index;
 } MPIDI_OFI_am_repost_request_t;
 
+/* chunked request for AM eager/pipeline send operation */
+typedef struct MPIDI_OFI_am_send_request {
+    char pad[MPIDI_REQUEST_HDR_SIZE];
+    struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */
+    int event_id;               /* fixed field, do not move */
+    MPIR_Request *parent;       /* Parent request           */
+    MPIDI_OFI_am_request_header_t req_hdr;
+
+    struct MPIDI_OFI_am_send_request *prev;
+    struct MPIDI_OFI_am_send_request *next;
+} MPIDI_OFI_am_send_request_t;
+
 typedef struct {
     char pad[MPIDI_REQUEST_HDR_SIZE];
     struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */

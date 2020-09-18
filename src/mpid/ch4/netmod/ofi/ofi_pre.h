@@ -132,6 +132,9 @@ typedef struct {
     struct iovec iov[3];
 } MPIDI_OFI_am_request_header_t;
 
+/* forward decl for am_send_request in ofi_types.h */
+typedef struct MPIDI_OFI_am_send_request MPIDI_OFI_am_send_request_t;
+
 typedef struct {
     struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */
     int event_id;               /* fixed field, do not move */

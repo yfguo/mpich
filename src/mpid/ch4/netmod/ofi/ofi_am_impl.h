@@ -122,6 +122,52 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_init_request(const void *am_hdr,
     return mpi_errno;
 }
 
+/* This function allocates a new OFI_am_send_request_t for the given MPIR_Request. */
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_create_send_request(MPIR_Request * sreq,
+                                                              const void *am_hdr, size_t am_hdr_sz,
+                                                              MPIDI_OFI_am_send_request_t **
+                                                              send_req)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_OFI_am_send_request_t *new_send_req = NULL;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_CREATE_SEND_REQUEST);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_CREATE_SEND_REQUEST);
+
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &new_send_req);
+    MPIR_Assert(new_send_req);
+
+    new_send_req->parent = sreq;
+
+    /* point to the existing am request header as the content does not change among each
+     * send req */
+    new_send_req->req_hdr.am_hdr_sz = am_hdr_sz;
+    new_send_req->req_hdr.am_hdr = (void *) &new_send_req->req_hdr.am_hdr_buf[0];
+
+    if (am_hdr_sz > 0) {
+        MPIR_Memcpy(new_send_req->req_hdr.am_hdr, am_hdr, am_hdr_sz);
+    }
+
+    *send_req = new_send_req;
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_CREATE_SEND_REQUEST);
+    return mpi_errno;
+}
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_release_send_request(MPIDI_OFI_am_send_request_t *
+                                                               send_req)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_RELEASE_SEND_REQUEST);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_RELEASE_SEND_REQUEST);
+
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_hdr_buf_pool, send_req);
+
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_RELEASE_SEND_REQUEST);
+    return mpi_errno;
+}
+
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_repost_buffer(void *buf, MPIR_Request * req)
 {
     int mpi_errno = MPI_SUCCESS;
