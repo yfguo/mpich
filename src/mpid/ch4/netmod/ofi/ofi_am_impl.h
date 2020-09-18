@@ -354,12 +354,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     goto fn_exit;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_deferred_am_isend_enqueue(int rank, MPIR_Comm * comm,
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_deferred_am_isend_enqueue(int op, int rank, MPIR_Comm * comm,
                                                                  int handler_id, const void *buf,
                                                                  size_t count,
                                                                  MPI_Datatype datatype,
                                                                  MPIR_Request * sreq,
-                                                                 MPI_Aint data_sz)
+                                                                 MPI_Aint data_sz,
+                                                                 const void *am_hdr,
+                                                                 size_t am_hdr_sz,
+                                                                 bool need_packing)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -373,6 +376,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_deferred_am_isend_enqueue(int rank, MPIR_
                                                          MPL_MEM_OTHER);
     MPIR_ERR_CHKANDJUMP(!deferred_req, mpi_errno, MPI_ERR_OTHER, "**nomem");
 
+    deferred_req->op = op;
     deferred_req->rank = rank;
     deferred_req->comm = comm;
     deferred_req->handler_id = handler_id;
@@ -381,6 +385,19 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_deferred_am_isend_enqueue(int rank, MPIR_
     deferred_req->datatype = datatype;
     deferred_req->sreq = sreq;
     deferred_req->data_sz = data_sz;
+    if (am_hdr) {
+        deferred_req->am_hdr = MPL_malloc(am_hdr_sz, MPL_MEM_OTHER);
+        MPIR_ERR_CHKANDSTMT(!deferred_req->am_hdr, mpi_errno, MPI_ERR_OTHER, goto fn_fail,
+                            "**nomemreq");
+        memcpy(deferred_req->am_hdr, am_hdr, am_hdr_sz);
+    } else {
+        deferred_req->am_hdr = NULL;
+    }
+    deferred_req->am_hdr_sz = am_hdr_sz;
+    deferred_req->need_packing = need_packing;
+
+    MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
+                    (MPL_DBG_FDEST, "Enqueue deferred am isend hdr dreq=%p", deferred_req));
 
     DL_APPEND(MPIDI_OFI_global.deferred_am_isend_q, deferred_req);
 
