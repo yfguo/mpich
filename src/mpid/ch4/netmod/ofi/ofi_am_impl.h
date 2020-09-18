@@ -309,7 +309,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm, int handler_id,
                                                       const void *data, MPI_Aint data_sz,
-                                                      MPIR_Request * sreq)
+                                                      MPIR_Request * sreq,
+                                                      MPIDI_OFI_am_send_request_t * send_req)
 {
     int mpi_errno = MPI_SUCCESS, c;
     MPIDI_OFI_am_header_t *msg_hdr;
@@ -322,31 +323,30 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     MPIR_Assert(data_sz < (1ULL << MPIDI_OFI_AM_DATA_SZ_BITS));
     MPIR_Assert((uint64_t) comm->rank < (1ULL << MPIDI_OFI_AM_RANK_BITS));
 
-    msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
+    msg_hdr = &send_req->req_hdr.msg_hdr;
     msg_hdr->handler_id = handler_id;
-    msg_hdr->am_hdr_sz = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
+    msg_hdr->am_hdr_sz = send_req->req_hdr.am_hdr_sz;
     msg_hdr->data_sz = data_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_SHORT;
     msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
     msg_hdr->fi_src_addr
         = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, 0, 0);
 
-    iov = MPIDI_OFI_AMREQUEST_HDR(sreq, iov);
-
+    iov = send_req->req_hdr.iov;
     iov[0].iov_base = msg_hdr;
     iov[0].iov_len = sizeof(*msg_hdr);
 
-    iov[1].iov_base = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr);
-    iov[1].iov_len = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
+    iov[1].iov_base = send_req->req_hdr.am_hdr;
+    iov[1].iov_len = send_req->req_hdr.am_hdr_sz;
 
     iov[2].iov_base = (void *) data;
     iov[2].iov_len = data_sz;
 
     MPIR_cc_incr(sreq->cc_ptr, &c);
-    MPIDI_OFI_AMREQUEST(sreq, event_id) = MPIDI_OFI_EVENT_AM_SEND;
+    send_req->event_id = MPIDI_OFI_EVENT_AM_SEND;
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[0].tx, iov, NULL, 3,
                                      MPIDI_OFI_comm_to_phys(comm, rank, 0, 0),
-                                     &MPIDI_OFI_AMREQUEST(sreq, context)), sendv);
+                                     &send_req->context), sendv);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
     return mpi_errno;
@@ -408,43 +408,23 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_deferred_am_isend_enqueue(int op, int ran
     goto fn_exit;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend(int rank,
-                                                   MPIR_Comm * comm,
-                                                   int handler_id,
-                                                   const void *am_hdr,
-                                                   size_t am_hdr_sz,
-                                                   const void *buf,
-                                                   size_t count, MPI_Datatype datatype,
-                                                   MPIR_Request * sreq)
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * comm,
+                                                         int handler_id, const void *am_hdr,
+                                                         size_t am_hdr_sz, const void *buf,
+                                                         size_t count, MPI_Datatype datatype,
+                                                         MPIR_Request * sreq, size_t data_sz)
 {
     int dt_contig, mpi_errno = MPI_SUCCESS;
     char *send_buf;
-    MPI_Aint data_sz;
     MPI_Aint dt_true_lb, last;
-    MPIR_Datatype *dt_ptr;
-    bool do_eager = false;
     bool need_packing = false;
+    MPIDI_OFI_am_send_request_t *send_req;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_AM_ISEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_AM_ISEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_EAGER);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_EAGER);
 
-    MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
+    MPIDI_Datatype_check_contig_lb(datatype, count, dt_contig, dt_true_lb);
     send_buf = (char *) buf + dt_true_lb;
-
-    do_eager =
-        (am_hdr_sz + data_sz + sizeof(MPIDI_OFI_am_header_t) <= MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE);
-
-    MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
-    mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    if (MPIDI_OFI_global.deferred_am_isend_q) {
-        /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */
-        mpi_errno = MPIDI_OFI_deferred_am_isend_enqueue(rank, comm, handler_id, buf, count,
-                                                        datatype, sreq, data_sz);
-        MPIR_ERR_CHECK(mpi_errno);
-        goto fn_exit;
-    }
 
     need_packing = dt_contig ? false : true;
 
@@ -455,41 +435,46 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend(int rank,
         need_packing = true;
     }
 
+    if (MPIDI_OFI_global.deferred_am_isend_q) {
+        /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */
+        MPIDI_OFI_deferred_am_isend_enqueue(MPIDI_OFI_DEFERRED_AM_OP__ISEND_EAGER, rank, comm,
+                                            handler_id, buf, count, datatype, sreq, data_sz, am_hdr,
+                                            am_hdr_sz, need_packing);
+        goto fn_exit;
+    }
+
     if (need_packing) {
         /* FIXME: currently we always do packing, also for high density types. However,
          * we should not do packing unless needed. Also, for large low-density types
          * we should not allocate the entire buffer and do the packing at once. */
-        /* TODO: (1) Skip packing for high-density datatypes;
-         *       (2) Pipeline allocation for low-density datatypes; */
-        if (do_eager) {
-            MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, (void **) &send_buf);
-            if (send_buf == NULL) {
-                mpi_errno = MPIDI_OFI_deferred_am_isend_enqueue(rank, comm, handler_id, buf, count,
-                                                                datatype, sreq, data_sz);
-                MPIR_ERR_CHECK(mpi_errno);
-                goto fn_exit;
-            }
-        } else {
-            /* only for large message RDMA read */
-            MPL_gpu_malloc_host((void **) &send_buf, data_sz);
+        /* TODO: (1) Skip packing for high-density datatypes; */
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, (void **) &send_buf);
+        if (send_buf == NULL) {
+            MPIDI_OFI_deferred_am_isend_enqueue(MPIDI_OFI_DEFERRED_AM_OP__ISEND_EAGER, rank, comm,
+                                                handler_id, buf, count, datatype, sreq, data_sz,
+                                                am_hdr, am_hdr_sz, need_packing);
+            goto fn_exit;
         }
         mpi_errno = MPIR_Typerep_pack(buf, count, datatype, 0, send_buf, data_sz, &last);
         MPIR_ERR_CHECK(mpi_errno);
+        MPIR_Assert(data_sz == last);
 
-        MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer) = send_buf;
+        MPIDI_OFI_am_create_send_request(sreq, am_hdr, am_hdr_sz, &send_req);
+        send_req->req_hdr.pack_buffer = send_buf;
     } else {
-        MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
+        MPIDI_OFI_am_create_send_request(sreq, am_hdr, am_hdr_sz, &send_req);
+        send_req->req_hdr.pack_buffer = NULL;
     }
 
-    if (do_eager) {
-        mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq);
-    } else {
-        mpi_errno = MPIDI_OFI_am_isend_long(rank, comm, handler_id, send_buf, data_sz, sreq);
-    }
+    MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
+                    (MPL_DBG_FDEST,
+                     "issue eager seg for req handle=0x%x send_size %ld", sreq->handle, data_sz));
+
+    mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq, send_req);
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_AM_ISEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_EAGER);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
