@@ -289,6 +289,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_rdma_read_ack(int rank, int context
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_rdma_read_reject(int rank, int context_id,
+                                                              MPIR_Request * sreq_ptr,
+                                                              MPIR_Request * rreq_ptr)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_OFI_am_rdma_read_reject_msg_t reject_msg;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_AM_RDMA_READ_REJECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_AM_RDMA_READ_REJECT);
+
+    reject_msg.sreq_ptr = sreq_ptr;
+    reject_msg.rreq_ptr = rreq_ptr;
+    mpi_errno = MPIDI_NM_am_send_hdr_reply(context_id, rank, MPIDI_OFI_AM_RDMA_READ_REJECT,
+                                           &reject_msg, sizeof(reject_msg));
+    MPIR_ERR_CHECK(mpi_errno);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_AM_RDMA_READ_REJECT);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /* internal routines */
 MPL_STATIC_INLINE_PREFIX void do_long_am_recv_contig(void *p_data, MPI_Aint data_sz,
                                                      MPI_Aint in_data_sz, MPIR_Request * rreq,

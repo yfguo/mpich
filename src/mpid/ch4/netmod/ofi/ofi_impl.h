@@ -226,6 +226,11 @@ int MPIDI_OFI_control_handler(int handler_id, void *am_hdr, void *data, MPI_Aint
 int MPIDI_OFI_am_rdma_read_ack_handler(int handler_id, void *am_hdr, void *data,
                                        MPI_Aint in_data_sz, int is_local, int is_async,
                                        MPIR_Request ** req);
+int MPIDI_OFI_am_rdma_read_reject_handler(int handler_id, void *am_hdr, void *data,
+                                          MPI_Aint in_data_sz, int is_local, int is_async,
+                                          MPIR_Request ** req);
+int MPIDI_OFI_am_resend_handler(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
+                                int is_local, int is_async, MPIR_Request ** req);
 int MPIDI_OFI_control_dispatch(void *buf);
 void MPIDI_OFI_index_datatypes(void);
 int MPIDI_OFI_mr_key_allocator_init(void);

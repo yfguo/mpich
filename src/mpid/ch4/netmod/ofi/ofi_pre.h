@@ -76,6 +76,13 @@ typedef struct {
     MPIR_Request *sreq_ptr;
 } MPIDI_OFI_am_rdma_read_ack_msg_t;
 
+typedef struct {
+    MPIR_Request *sreq_ptr;
+    MPIR_Request *rreq_ptr;
+} MPIDI_OFI_am_rdma_read_reject_msg_t;
+
+typedef MPIDI_OFI_am_rdma_read_reject_msg_t MPIDI_OFI_am_resend_msg_t;
+
 typedef struct MPIDI_OFI_am_header_t {
     uint64_t handler_id:MPIDI_OFI_AM_HANDLER_ID_BITS;
     uint64_t am_type:MPIDI_OFI_AM_TYPE_BITS;
@@ -161,6 +168,7 @@ typedef struct {
                                                          * deferred */
     MPIDI_OFI_saved_am_isend_req_t *saved_req;  /* saving isend information in case RDMA_READ is
                                                  * rejected */
+    uint8_t am_type;
 } MPIDI_OFI_am_request_t;
 
 

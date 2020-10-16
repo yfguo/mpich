@@ -388,6 +388,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
         mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
         MPIR_ERR_CHECK(mpi_errno);
+        MPIDI_OFI_AMREQUEST(sreq, am_type) = MPIDI_AMTYPE_SHORT;
 
         MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);
 
@@ -571,9 +572,18 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
      * ignored when issue_deferred is set to true. They should have been saved in the request. */
 
     if (!issue_deferred) {
-        MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
+        /* note we need to handle the case where RDMA_READ fallbacks to PIPELINE by skipping the
+         * init of req_hdr. */
+        if (MPIDI_OFI_AMREQUEST(sreq, am_type) != MPIDI_AMTYPE_RDMA_READ) {
+            /* normal pipeline case */
+            MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
+        } else {
+            /* pipeline fallback from RDMA_READ */
+            MPIDI_OFI_am_clear_request(sreq);
+        }
         mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
         MPIR_ERR_CHECK(mpi_errno);
+        MPIDI_OFI_AMREQUEST(sreq, am_type) = MPIDI_AMTYPE_PIPELINE;
 
         MPIDI_Datatype_check_contig(datatype, dt_contig);
 
@@ -706,6 +716,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
         mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
         MPIR_ERR_CHECK(mpi_errno);
+        MPIDI_OFI_AMREQUEST(sreq, am_type) = MPIDI_AMTYPE_RDMA_READ;
 
         MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);
 
