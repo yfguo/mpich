@@ -151,12 +151,16 @@ typedef struct MPIDI_OFI_deferred_am_isend_req {
     struct MPIDI_OFI_deferred_am_isend_req *next;
 } MPIDI_OFI_deferred_am_isend_req_t;
 
+typedef MPIDI_OFI_deferred_am_isend_req_t MPIDI_OFI_saved_am_isend_req_t;
+
 typedef struct {
     struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */
     int event_id;               /* fixed field, do not move */
     MPIDI_OFI_am_request_header_t *req_hdr;
     MPIDI_OFI_deferred_am_isend_req_t *deferred_req;    /* saving information when an AM isend is
                                                          * deferred */
+    MPIDI_OFI_saved_am_isend_req_t *saved_req;  /* saving isend information in case RDMA_READ is
+                                                 * rejected */
 } MPIDI_OFI_am_request_t;
 
 

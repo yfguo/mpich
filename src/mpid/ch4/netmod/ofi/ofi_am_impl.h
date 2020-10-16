@@ -753,9 +753,29 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
 
     mpi_errno = MPIDI_OFI_am_isend_long(rank, comm, handler_id, send_buf, data_sz, sreq);
     MPIR_ERR_CHECK(mpi_errno);
+    /* save request information in case of RDMA_READ is rejected.
+     * 1. try reuse deferred_req if available
+     * 2. if no deferred_req, allocate new space */
+    if (issue_deferred) {
+        MPIDI_OFI_AMREQUEST(sreq, saved_req) = MPIDI_OFI_AMREQUEST(sreq, deferred_req);
+    } else {
+        MPIDI_OFI_AMREQUEST(sreq, saved_req) =
+            (MPIDI_OFI_saved_am_isend_req_t *) MPL_malloc(sizeof(MPIDI_OFI_saved_am_isend_req_t),
+                                                          MPL_MEM_OTHER);
+        MPIR_Assert(MPIDI_OFI_AMREQUEST(sreq, saved_req));
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->rank = rank;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->comm = comm;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->handler_id = handler_id;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->buf = buf;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->count = count;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->datatype = datatype;
+        MPIDI_OFI_AMREQUEST(sreq, saved_req)->data_sz = data_sz;
+    }
+
     if (issue_deferred) {
         DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
-        MPL_free(MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+        /* we do not free deferreq_req because it is used as the saved request info. It will be
+         * eventually freed in the ACK or REJECT handler in (ofi_am_events.c) */
     }
 
   fn_exit:
