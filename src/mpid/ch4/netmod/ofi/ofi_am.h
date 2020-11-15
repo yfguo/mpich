@@ -250,9 +250,7 @@ MPL_STATIC_INLINE_PREFIX bool MPIDI_NM_am_check_eager(MPI_Aint am_hdr_sz, MPI_Ai
          * tells the sender to not worry about the protocol and let netmod send the data. */
         if (MPIDI_OFI_ENABLE_RMA && !MPIR_CVAR_CH4_OFI_AM_LONG_FORCE_PIPELINE) {
             MPIDI_OFI_AMREQUEST(sreq, am_type_choice) = MPIDI_AMTYPE_RDMA_READ;
-            /* FIXME: report this is none eager and let CH4 goto RNDV path. This is just for testing
-             * and will be switched reporting true in the future to save the unnecessary RTS */
-            return false;
+            return true;
         } else {
             /* Forced PIPELINE */
             MPIDI_OFI_AMREQUEST(sreq, am_type_choice) = MPIDI_AMTYPE_PIPELINE;
