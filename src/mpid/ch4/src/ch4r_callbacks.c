@@ -422,6 +422,14 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
             MPIDIG_REQUEST(rreq, req->rreq.match_req) = NULL;
             MPIDIG_recv_type_init(hdr->data_sz, rreq);
             MPIDIG_do_cts(rreq);
+        } else if (is_async) {
+            MPIDIG_REQUEST(rreq, req->seq_no) =
+                MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+            MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
+                            (MPL_DBG_FDEST, "seq_no: me=%" PRIu64 " exp=%" PRIu64,
+                             MPIDIG_REQUEST(rreq, req->seq_no),
+                             MPL_atomic_load_uint64(&MPIDI_global.exp_seq_no)));
+            MPIDIG_recv_type_init(hdr->data_sz, rreq);
         }
     }
 
