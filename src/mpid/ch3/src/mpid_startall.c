@@ -315,7 +315,7 @@ int MPID_Bcast_init( void *buffer, int count, MPI_Datatype datatype, int root,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_BCAST_INIT);
 
     mpi_errno = MPIR_Bcast_init(buffer, count, datatype, root, comm_ptr, info_ptr, request);
-    MPIDI_Request_set_type(*request, MPIDI_REQUEST_TYPE_PERSISTENT_BCAST);
+    MPIDI_Request_set_type(*request, MPIDI_REQUEST_TYPE_PERSISTENT_COLL);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_BCAST_INIT);

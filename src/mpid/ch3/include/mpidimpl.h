@@ -347,7 +347,7 @@ extern MPIDI_Process_t MPIDI_Process;
 #define MPIDI_REQUEST_TYPE_FOP_RECV 14                   /* target is receiving FOP data */
 #define MPIDI_REQUEST_TYPE_FOP_RESP 15                   /* target is sending FOP response data */
 /* Request types for persistent collectives */
-#define MPIDI_REQUEST_TYPE_PERSISTENT_BCAST 16
+#define MPIDI_REQUEST_TYPE_PERSISTENT_COLL 16
 
 
 #define MPIDI_Request_get_type(req_)						\

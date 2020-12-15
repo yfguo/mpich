@@ -129,7 +129,7 @@ int MPIR_Request_free_impl(MPIR_Request * request_ptr)
                 MPIR_Request_free(request_ptr->u.persist.real_request);
             }
             break;
-        case MPIR_REQUEST_KIND__PREQUEST_BCAST:
+        case MPIR_REQUEST_KIND__PREQUEST_COLL:
             /* If this is an active persistent request, we must also
              * release the partner request. */
             if (request_ptr->u.persist.real_request != NULL) {
@@ -222,7 +222,7 @@ int MPIR_Request_get_status_impl(MPIR_Request * request_ptr, int *flag, MPI_Stat
                     MPIR_Status_set_empty(status);
                 }
                 break;
-            case MPIR_REQUEST_KIND__PREQUEST_BCAST:
+            case MPIR_REQUEST_KIND__PREQUEST_COLL:
                 if (request_ptr->u.persist.real_request != NULL) {
                     MPIR_Request *prequest_ptr = request_ptr->u.persist.real_request;
 
