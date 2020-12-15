@@ -98,6 +98,7 @@ int main(int argc, char **argv)
         my_assert(buf_alias[i] == i);
     }
 
+    free(buf);
     MPI_Info_free(&info);
 
     MTest_Finalize(errs);

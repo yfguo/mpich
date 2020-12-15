@@ -170,3 +170,10 @@ neighb_alltoallv 4
 neighb_alltoallw 4
 ring_neighbor_alltoall 2
 ring_neighbor_alltoall 1
+
+@coll_algo_tests@
+
+# Tests for Persistent collectives API extensions. These are proposed to
+# be part of MPI 4
+p_bcast 4 strict=false
+p_bcast2 8 strict=false
