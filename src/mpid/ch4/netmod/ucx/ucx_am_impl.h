@@ -93,6 +93,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_am_isend_short(int rank, MPIR_Comm * c
     ucx_hdr.handler_id = handler_id;
     ucx_hdr.data_sz = data_sz;
 
+    ep = MPIDI_UCX_COMM_TO_EP(comm, rank, 0, 0);
+
     if (need_packing) {
         MPIR_Assert(data_sz <= MPIDI_UCX_DEFAULT_SHORT_SEND_SIZE);
         MPIDU_genq_private_pool_alloc_cell(MPIDI_UCX_global.pack_buf_pool, (void **) &send_buf);
@@ -103,27 +105,44 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_am_isend_short(int rank, MPIR_Comm * c
                 goto fn_exit;
             }
         }
+        MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
+        MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
+        mpi_errno = MPIR_Typerep_pack(data, count, datatype, 0, send_buf + am_hdr_sz +
+                                      sizeof(ucx_hdr), data_sz, &last);
+        MPIR_ERR_CHECK(mpi_errno);
+        MPIR_Assert(last == data_sz);
+
+        ucp_request = (MPIDI_UCX_ucp_request_t *) ucp_am_send_nb(ep, MPIDI_UCX_AM_HANDLER_ID__SHORT,
+                                                                 send_buf, data_sz + am_hdr_sz +
+                                                                 sizeof(ucx_hdr),
+                                                                 ucp_dt_make_contig(1),
+                                                                 &MPIDI_UCX_am_isend_short_callback,
+                                                                 0);
+        MPIDI_UCX_CHK_REQUEST(ucp_request);
     } else {
-        send_buf = MPL_malloc(data_sz + am_hdr_sz + sizeof(ucx_hdr), MPL_MEM_OTHER);
+        send_buf = MPL_malloc(am_hdr_sz + sizeof(ucx_hdr), MPL_MEM_OTHER);
         if (send_buf == NULL) {
             mpi_errno = MPI_ERR_OTHER;
             goto fn_fail;
         }
+        MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
+        MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
+
+        ucp_dt_iov_t *iov = MPIDI_UCX_AMREQUEST(sreq, iov);
+
+        MPIDI_Datatype_check_lb(datatype, dt_true_lb);
+        iov[0].buffer = send_buf;
+        iov[0].length = sizeof(ucx_hdr) + am_hdr_sz;
+        iov[1].buffer = (char *) data + dt_true_lb;
+        iov[1].length = data_sz;
+
+        ucp_request = (MPIDI_UCX_ucp_request_t *) ucp_am_send_nb(ep, MPIDI_UCX_AM_HANDLER_ID__SHORT,
+                                                                 (void *) iov, 2 /* num IOV */ ,
+                                                                 ucp_dt_make_iov(),
+                                                                 &MPIDI_UCX_am_isend_short_callback,
+                                                                 0);
+        MPIDI_UCX_CHK_REQUEST(ucp_request);
     }
-    MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
-    MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
-    mpi_errno = MPIR_Typerep_pack(data, count, datatype, 0, send_buf + am_hdr_sz + sizeof(ucx_hdr),
-                                  data_sz, &last);
-    MPIR_ERR_CHECK(mpi_errno);
-    MPIR_Assert(last == data_sz);
-
-    ep = MPIDI_UCX_COMM_TO_EP(comm, rank, 0, 0);
-
-    ucp_request = (MPIDI_UCX_ucp_request_t *) ucp_am_send_nb(ep, MPIDI_UCX_AM_HANDLER_ID__SHORT,
-                                                             send_buf, data_sz + am_hdr_sz +
-                                                             sizeof(ucx_hdr), ucp_dt_make_contig(1),
-                                                             &MPIDI_UCX_am_isend_short_callback, 0);
-    MPIDI_UCX_CHK_REQUEST(ucp_request);
 
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
