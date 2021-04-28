@@ -9,6 +9,24 @@
 #include "ucx_impl.h"
 #include "ucx_am_impl.h"
 
+/*
+=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MPIR_CVAR_CH4_UCX_AM_LONG_FORCE_PIPELINE
+      category    : DEVELOPER
+      type        : boolean
+      default     : false
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_LOCAL
+      description : >-
+        For long message to be sent using pipeline rather than default
+        bulk send.
+
+=== END_MPI_T_CVAR_INFO_BLOCK ===
+*/
+
 MPL_STATIC_INLINE_PREFIX void MPIDI_UCX_am_isend_callback(void *request, ucs_status_t status)
 {
     MPIDI_UCX_ucp_request_t *ucp_request = (MPIDI_UCX_ucp_request_t *) request;
@@ -309,8 +327,13 @@ MPL_STATIC_INLINE_PREFIX bool MPIDI_NM_am_check_eager(MPI_Aint am_hdr_sz, MPI_Ai
         MPIDI_UCX_AMREQUEST(sreq, am_type_choice) = MPIDI_UCX_AMTYPE_SHORT;
         return true;
     } else {
-        MPIDI_UCX_AMREQUEST(sreq, am_type_choice) = MPIDI_UCX_AMTYPE_PIPELINE;
-        return false;
+        if (!MPIR_CVAR_CH4_UCX_AM_LONG_FORCE_PIPELINE) {
+            MPIDI_UCX_AMREQUEST(sreq, am_type_choice) = MPIDI_UCX_AMTYPE_BULK;
+            return false;
+        } else {
+            MPIDI_UCX_AMREQUEST(sreq, am_type_choice) = MPIDI_UCX_AMTYPE_PIPELINE;
+            return false;
+        }
     }
 }
 

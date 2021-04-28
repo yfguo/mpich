@@ -68,7 +68,11 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_UCX_am_isend_bulk_callback(void *request, uc
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_UCX_AM_ISEND_BULK_CALLBACK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_UCX_AM_ISEND_BULK_CALLBACK);
 
-    MPIR_gpu_free_host(MPIDI_UCX_AMREQUEST(req, pack_buffer));
+    if (MPIDI_UCX_AMREQUEST(req, is_gpu_pack_buffer)) {
+        MPIR_gpu_free_host(MPIDI_UCX_AMREQUEST(req, pack_buffer));
+    } else {
+        MPL_free(MPIDI_UCX_AMREQUEST(req, pack_buffer));
+    }
     MPIDI_UCX_AMREQUEST(req, pack_buffer) = NULL;
     MPIDIG_global.origin_cbs[handler_id] (req);
     ucp_request->req = NULL;
@@ -216,9 +220,17 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_am_isend_bulk(int rank, MPIR_Comm * co
     char *send_buf;
     size_t data_sz;
     MPIDI_UCX_am_header_t ucx_hdr;
+    bool use_gpu_buffer = false;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_UCX_DO_AM_ISEND_BULK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_UCX_DO_AM_ISEND_BULK);
+
+    MPL_pointer_attr_t attr;
+    MPIR_GPU_query_pointer_attr(data, &attr);
+    if (attr.type == MPL_GPU_POINTER_DEV) {
+        /* Force packing of GPU buffer in host memory */
+        use_gpu_buffer = true;
+    }
 
     MPIDI_Datatype_check_size(datatype, count, data_sz);
 
@@ -228,7 +240,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_am_isend_bulk(int rank, MPIR_Comm * co
     ucx_hdr.handler_id = handler_id;
     ucx_hdr.data_sz = data_sz;
 
-    MPIR_gpu_malloc_host((void **) &send_buf, data_sz + am_hdr_sz + sizeof(ucx_hdr));
+    if (use_gpu_buffer) {
+        MPIR_gpu_malloc_host((void **) &send_buf, data_sz + am_hdr_sz + sizeof(ucx_hdr));
+    } else {
+        send_buf = MPL_malloc(data_sz + am_hdr_sz + sizeof(ucx_hdr), MPL_MEM_OTHER);
+    }
     MPIR_Memcpy(send_buf, &ucx_hdr, sizeof(ucx_hdr));
     MPIR_Memcpy(send_buf + sizeof(ucx_hdr), am_hdr, am_hdr_sz);
 
@@ -253,8 +269,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_UCX_do_am_isend_bulk(int rank, MPIR_Comm * co
     }
 
     /* set the ch4r request inside the UCP request */
-    sreq->dev.ch4.am.netmod_am.ucx.pack_buffer = send_buf;
-    sreq->dev.ch4.am.netmod_am.ucx.handler_id = handler_id;
+    MPIDI_UCX_AMREQUEST(sreq, pack_buffer) = send_buf;
+    MPIDI_UCX_AMREQUEST(sreq, handler_id) = handler_id;
+    MPIDI_UCX_AMREQUEST(sreq, is_gpu_pack_buffer) = use_gpu_buffer;
     ucp_request->req = sreq;
     ucp_request_release(ucp_request);
 
