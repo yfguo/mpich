@@ -1016,6 +1016,23 @@ if test "$have_gpu" = "no" ; then
     fi
 fi
 AM_CONDITIONAL([MPL_HAVE_ZE],[test "X${pac_have_ze}" = "Xyes"])
+
+# Check HIP availability
+if test "$have_gpu" = "no" ; then
+        PAC_CHECK_HEADER_LIB_OPTIONAL([hip],[hip_runtime_api.h],[hiprt],[hipStreamSynchronize])
+        if test "$pac_have_hip" = "yes" ; then
+            # also require -lhip (in addition to -lhiprt)
+            PAC_CHECK_HEADER_LIB([hip/hip_runtime.h],[hip],[hipMemGetAddressRange], pac_have_hip=yes, pac_have_hip=no)
+            have_gpu="yes"
+        fi  
+fi
+if test "X${pac_have_hip}" = "Xyes" ; then
+    PAC_LIBS_ADD(-lhip)
+    AC_DEFINE([HAVE_HIP],[1],[Define if HIP is available])
+    have_gpu="yes"
+fi
+AM_CONDITIONAL([MPL_HAVE_HIP],[test "X${pac_have_hip}" = "Xyes"])
+
 #######################################################################
 ## END OF GPU CODE
 #######################################################################
