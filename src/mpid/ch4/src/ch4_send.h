@@ -493,4 +493,33 @@ MPL_STATIC_INLINE_PREFIX int MPID_Cancel_send(MPIR_Request * sreq)
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPID_Isend_stream(const void *buf,
+                                               MPI_Aint count,
+                                               MPI_Datatype datatype,
+                                               int rank,
+                                               int tag,
+                                               MPIR_Comm * comm, int context_offset,
+                                               void *stream, MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_av_entry_t *av = NULL;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ISEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_ISEND);
+
+    if (MPIDI_is_self_comm(comm)) {
+        mpi_errno =
+            MPIDI_Self_isend(buf, count, datatype, rank, tag, comm, context_offset, request);
+    } else {
+        av = MPIDIU_comm_rank_to_av(comm, rank);
+        mpi_errno = MPIDI_isend(buf, count, datatype, rank, tag, comm, context_offset, av, request);
+    }
+
+    MPIR_ERR_CHECK(mpi_errno);
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ISEND);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 #endif /* CH4_SEND_H_INCLUDED */
