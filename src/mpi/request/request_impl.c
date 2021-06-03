@@ -895,6 +895,28 @@ int MPIR_Wait_state(MPIR_Request * request_ptr, MPI_Status * status, MPID_Progre
     goto fn_exit;
 }
 
+/* MPID_Wait_stream call MPIR_Wait_state_stream with initialized progress state */
+int MPIR_Wait_state_stream(MPIR_Request * request_ptr, MPI_Status * status, void *stream,
+                           MPID_Progress_state * state)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    while (!MPIR_Request_is_complete(request_ptr)) {
+        mpi_errno = MPID_Progress_wait(state);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        if (unlikely(MPIR_Request_is_anysrc_mismatched(request_ptr))) {
+            mpi_errno = MPIR_Request_handle_proc_failed(request_ptr);
+            goto fn_fail;
+        }
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /* legacy interface (for ch3) */
 int MPIR_Wait_impl(MPIR_Request * request_ptr, MPI_Status * status)
 {

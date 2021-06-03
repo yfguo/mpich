@@ -35,8 +35,14 @@ MPL_STATIC_INLINE_PREFIX int MPID_Iprobe(int, int, MPIR_Comm *, int, int *,
                                          MPI_Status *) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPID_Irecv(void *, MPI_Aint, MPI_Datatype, int, int, MPIR_Comm *, int,
                                         MPIR_Request **) MPL_STATIC_INLINE_SUFFIX;
+MPL_STATIC_INLINE_PREFIX int MPID_Irecv_stream(void *, MPI_Aint, MPI_Datatype, int, int,
+                                               MPIR_Comm *, int, void *, MPIR_Request **)
+    MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPID_Isend(const void *, MPI_Aint, MPI_Datatype, int, int, MPIR_Comm *,
                                         int, MPIR_Request **) MPL_STATIC_INLINE_SUFFIX;
+MPL_STATIC_INLINE_PREFIX int MPID_Isend_stream(const void *, MPI_Aint, MPI_Datatype, int, int,
+                                               MPIR_Comm *, int, void *, MPIR_Request **)
+    MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPID_Issend(const void *, MPI_Aint, MPI_Datatype, int, int,
                                          MPIR_Comm *, int,
                                          MPIR_Request **) MPL_STATIC_INLINE_SUFFIX;
