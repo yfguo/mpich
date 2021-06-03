@@ -317,3 +317,16 @@ MPI_Waitsome:
     if (mpi_errno)
         goto fn_fail;
 }
+
+MPI_Wait_stream:
+    request: REQUEST, direction=inout, [request]
+    status: STATUS, direction=out
+    stream: STREAM, [GPU stream]
+    .desc: Waits for an MPI request to complete with GPU stream awareness
+    .docnotes: waitstatus
+{
+    mpi_errno = MPIR_Wait_stream(request, status, stream);
+    if (mpi_errno)
+        goto fn_fail;
+}
+
