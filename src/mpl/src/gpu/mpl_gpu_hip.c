@@ -6,7 +6,7 @@
 #include "mpl.h"
 #include <dlfcn.h>
 #include <assert.h>
-
+#ifdef MPL_HAVE_HIP
 #define HIP_ERR_CHECK(ret) if (unlikely((ret) != hipSuccess)) goto fn_fail
 #define HI_ERR_CHECK(ret) if (unlikely((ret) != HIP_SUCCESS)) goto fn_fail
 
@@ -21,8 +21,7 @@ static int max_dev_id = -1;
 
 static gpu_free_hook_s *free_hook_chain = NULL;
 
-static hipError_t HIPAPI(*sys_hipMemFree) (hipDeviceptr_t dptr);
-static hipError_t HIPRTAPI(*sys_hipFree) (void *dptr);
+static hipError_t (*sys_hipFree) (void *dptr);
 
 static int gpu_mem_hook_init();
 
@@ -43,11 +42,7 @@ int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
     hipError_t ret;
     ret = hipPointerGetAttributes(&attr->device_attr, ptr);
     if (ret == hipSuccess) {
-        switch (attr->device_attr.type) {
-            case hipMemoryTypeUnregistered:
-                attr->type = MPL_GPU_POINTER_UNREGISTERED_HOST;
-                attr->device = attr->device_attr.device;
-                break;
+        switch (attr->device_attr.memoryType) {
             case hipMemoryTypeHost:
                 attr->type = MPL_GPU_POINTER_REGISTERED_HOST;
                 attr->device = attr->device_attr.device;
@@ -55,12 +50,11 @@ int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
             case hipMemoryTypeDevice:
                 attr->type = MPL_GPU_POINTER_DEV;
                 attr->device = attr->device_attr.device;
-                break;
-            case hipMemoryTypeManaged:
+        }
+         if (attr->device_attr.isManaged) {
                 attr->type = MPL_GPU_POINTER_MANAGED;
                 attr->device = attr->device_attr.device;
-                break;
-        }
+         }
     } else if (ret == hipErrorInvalidValue) {
         attr->type = MPL_GPU_POINTER_UNREGISTERED_HOST;
         attr->device = -1;
@@ -120,7 +114,7 @@ int MPL_gpu_ipc_handle_unmap(void *ptr)
 int MPL_gpu_malloc_host(void **ptr, size_t size)
 {
     hipError_t ret;
-    ret = hipHostMalloc(ptr, size);
+    ret = hipHostMalloc(ptr, size, hipHostMallocDefault);
     HIP_ERR_CHECK(ret);
 
   fn_exit:
@@ -222,7 +216,7 @@ int MPL_gpu_init()
 
     /* gpu shm module would cache gpu handle to accelerate intra-node
      * communication; we must register hooks for memory-related functions
-     * in hip, such as hipFree and hipMemFree, to track user behaviors on
+     * in hip, such as hipFree, to track user behaviors on
      * the memory buffer and invalidate cached handle/buffer respectively
      * for result correctness. */
     gpu_mem_hook_init();
@@ -287,10 +281,10 @@ int MPL_gpu_get_global_dev_ids(int *global_ids, int count)
 
 int MPL_gpu_get_buffer_bounds(const void *ptr, void **pbase, uintptr_t * len)
 {
-    hipError_t curet;
+    hipError_t hiret;
 
-    curet = hipMemGetAddressRange((hipDeviceptr_t *) pbase, (size_t *) len, (hipDeviceptr_t) ptr);
-    CU_ERR_CHECK(curet);
+    hiret = hipMemGetAddressRange((hipDeviceptr_t *) pbase, (size_t *) len, (hipDeviceptr_t) ptr);
+    HI_ERR_CHECK(hiret);
 
   fn_exit:
     return MPL_SUCCESS;
@@ -316,14 +310,9 @@ static int gpu_mem_hook_init()
     void *libhip_handle;
     void *libhiprt_handle;
 
-    libhip_handle = dlopen("libhip.so", RTLD_LAZY | RTLD_GLOBAL);
+    libhip_handle = dlopen("libamdhip64.so", RTLD_LAZY | RTLD_GLOBAL);
     assert(libhip_handle);
-    libhiprt_handle = dlopen("libhiprt.so", RTLD_LAZY | RTLD_GLOBAL);
-    assert(libhiprt_handle);
-
-    sys_hipMemFree = (void *) dlsym(libhip_handle, "hipFree");
-    assert(sys_hipMemFree);
-    sys_hipFree = (void *) dlsym(libhiprt_handle, "hipFree");
+    sys_hipFree = (void *) dlsym(libhip_handle, "hipFree");
     assert(sys_hipFree);
     return MPL_SUCCESS;
 }
@@ -344,18 +333,11 @@ int MPL_gpu_free_hook_register(void (*free_hook) (void *dptr))
     return MPL_SUCCESS;
 }
 
-hipError_t HIPAPI hipFree(hipDeviceptr_t dptr)
-{
-    hipError_t result;
-    gpu_free_hooks_cb((void *) dptr);
-    result = sys_hipMemFree(dptr);
-    return (result);
-}
-
-hipError_t HIPRTAPI hipFree(void *dptr)
+hipError_t hipFree(void *dptr)
 {
     hipError_t result;
     gpu_free_hooks_cb(dptr);
     result = sys_hipFree(dptr);
     return result;
 }
+#endif /* MPL_HAVE_HIP */
