@@ -20,9 +20,7 @@ static int device_count = -1;
 static int max_dev_id = -1;
 
 static gpu_free_hook_s *free_hook_chain = NULL;
-
 static hipError_t (*sys_hipFree) (void *dptr);
-
 static int gpu_mem_hook_init();
 
 int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
