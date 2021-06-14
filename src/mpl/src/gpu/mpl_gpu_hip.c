@@ -20,7 +20,7 @@ static int device_count = -1;
 static int max_dev_id = -1;
 
 static gpu_free_hook_s *free_hook_chain = NULL;
-static hipError_t (*sys_hipFree) (void *dptr);
+static hipError_t(*sys_hipFree) (void *dptr);
 static int gpu_mem_hook_init();
 
 int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
@@ -49,10 +49,10 @@ int MPL_gpu_query_pointer_attr(const void *ptr, MPL_pointer_attr_t * attr)
                 attr->type = MPL_GPU_POINTER_DEV;
                 attr->device = attr->device_attr.device;
         }
-         if (attr->device_attr.isManaged) {
-                attr->type = MPL_GPU_POINTER_MANAGED;
-                attr->device = attr->device_attr.device;
-         }
+        if (attr->device_attr.isManaged) {
+            attr->type = MPL_GPU_POINTER_MANAGED;
+            attr->device = attr->device_attr.device;
+        }
     } else if (ret == hipErrorInvalidValue) {
         attr->type = MPL_GPU_POINTER_UNREGISTERED_HOST;
         attr->device = -1;
