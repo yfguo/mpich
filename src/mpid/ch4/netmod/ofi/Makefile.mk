@@ -24,6 +24,7 @@ mpi_core_sources   += src/mpid/ch4/netmod/ofi/func_table.c \
                       src/mpid/ch4/netmod/ofi/init_provider.c \
                       src/mpid/ch4/netmod/ofi/init_settings.c \
                       src/mpid/ch4/netmod/ofi/init_addrxchg.c \
+                      src/mpid/ch4/netmod/ofi/ofi_host_cb.c \
                       src/mpid/ch4/netmod/ofi/util.c
 errnames_txt_files += src/mpid/ch4/netmod/ofi/errnames.txt
 external_subdirs   += @ofisrcdir@

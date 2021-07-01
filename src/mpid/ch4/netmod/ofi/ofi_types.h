@@ -16,6 +16,7 @@
 #include "ch4_types.h"
 #include "mpidch4r.h"
 #include "mpidu_genq.h"
+#include "ofi_host_cb.h"
 
 #define __SHORT_FILE__                          \
     (strrchr(__FILE__,'/')                      \
@@ -382,6 +383,9 @@ typedef struct {
 #ifdef MPIDI_OFI_ENABLE_RUNTIME_CHECKS
     MPIDI_OFI_capabilities_t settings;
 #endif
+
+    /* host callbacks for stream aware operations */
+    MPIDI_OFI_host_cb_t host_cbs[MPIDI_OFI_NUM_HOST_CBS];
 } MPIDI_OFI_global_t;
 
 typedef struct {

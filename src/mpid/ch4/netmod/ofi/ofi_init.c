@@ -653,6 +653,8 @@ int MPIDI_OFI_init_local(int *tag_bits)
     /* index datatypes for RMA atomics. */
     MPIDI_OFI_index_datatypes(MPIDI_OFI_global.ctx[0].tx);
 
+    MPIDI_OFI_init_host_cbs();
+
     ofi_am_init();
     ofi_am_post_recv(0, 0);
 
