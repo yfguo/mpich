@@ -493,4 +493,55 @@ MPL_STATIC_INLINE_PREFIX int MPID_Cancel_send(MPIR_Request * sreq)
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPID_Isend_stream(const void *buf,
+                                               MPI_Aint count,
+                                               MPI_Datatype datatype,
+                                               int rank,
+                                               int tag,
+                                               MPIR_Comm * comm, int context_offset,
+                                               void *stream, MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIDI_av_entry_t *av = NULL;
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ISEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_ISEND);
+
+    if (MPIDI_is_self_comm(comm)) {
+        mpi_errno =
+            MPIDI_Self_isend(buf, count, datatype, rank, tag, comm, context_offset, request);
+    } else {
+        av = MPIDIU_comm_rank_to_av(comm, rank);
+#ifdef MPIDI_CH4_USE_WORK_QUEUES
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+        *(request) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, 0, 1);
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+        MPIR_ERR_CHKANDSTMT((*request) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
+                            "**nomemreq");
+        MPIR_Datatype_add_ref_if_not_builtin(datatype);
+        MPIDI_workq_pt2pt_enqueue(ISEND, buf, NULL /*recv_buf */ , count, datatype,
+                                  rank, tag, comm, context_offset, av,
+                                  NULL /*status */ , *request, NULL /*flag */ ,
+                                  NULL /*message */ , NULL /*processed */);
+#else
+        *(request) = NULL;
+#ifdef MPIDI_CH4_DIRECT_NETMOD
+        mpi_errno = MPIDI_NM_mpi_isend_stream(buf, count, datatype, rank, tag, comm, context_offset,
+                                              av, stream, request);
+#else
+        mpi_errno = MPIDI_NM_mpi_isend_stream(buf, count, datatype, rank, tag, comm, context_offset,
+                                              av, stream, request);
+        if (mpi_errno == MPI_SUCCESS)
+            MPIDI_REQUEST(*request, is_local) = 0;
+#endif
+        MPIR_ERR_CHECK(mpi_errno);
+#endif
+    }
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPID_ISEND);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 #endif /* CH4_SEND_H_INCLUDED */

@@ -298,6 +298,18 @@ int MPL_gpu_get_buffer_bounds(const void *ptr, void **pbase, uintptr_t * len)
     return MPL_ERR_GPU_INTERNAL;
 }
 
+int MPL_gpu_stream_launch_host_fn(MPL_gpu_stream_t stream, MPL_gpu_host_fn_t host_fn, void *data)
+{
+    cudaError_t ret;
+    ret = cudaLaunchHostFunc(stream, host_fn, data);
+    CUDA_ERR_CHECK(ret);
+
+  fn_exit:
+    return MPL_SUCCESS;
+  fn_fail:
+    return MPL_ERR_GPU_INTERNAL;
+}
+
 static void gpu_free_hooks_cb(void *dptr)
 {
     gpu_free_hook_s *current = free_hook_chain;

@@ -1574,8 +1574,8 @@ def dump_early_return_pt2pt_proc_null(func):
     G.out.append("INDENT")
     if has_request:
         request_kind = ''
-        if RE.search(r'mpi_.*(send|recv|probe)$', func['name'], re.IGNORECASE):
-            a = RE.m.group(1)
+        if RE.search(r'(mpi_|mpix_).*(send|recv|probe)(_stream)?$', func['name'], re.IGNORECASE):
+            a = RE.m.group(2)
             request_kind = "MPIR_REQUEST_KIND__" + a.upper()
         elif RE.search(r'mpi_r(put|get|accumulate|get_accumulate)$', func['name'], re.IGNORECASE):
             request_kind = "MPIR_REQUEST_KIND__RMA"
