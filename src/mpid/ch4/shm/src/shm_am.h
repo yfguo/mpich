@@ -43,23 +43,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_isend(int rank, MPIR_Comm * comm, int 
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_isendv(int rank, MPIR_Comm * comm, int handler_id,
-                                                 struct iovec *am_hdrs, size_t iov_len,
-                                                 const void *data, MPI_Aint count,
-                                                 MPI_Datatype datatype, MPIR_Request * sreq)
-{
-    int ret;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_ISENDV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_ISENDV);
-
-    ret = MPIDI_POSIX_am_isendv(rank, comm, MPIDI_POSIX_AM_HDR_CH4, handler_id, am_hdrs,
-                                iov_len, data, count, datatype, sreq);
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_ISENDV);
-    return ret;
-}
-
 MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_send_hdr_reply(MPIR_Comm * comm,
                                                          int src_rank, int handler_id,
                                                          const void *am_hdr, MPI_Aint am_hdr_sz)
@@ -91,19 +74,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_isend_reply(MPIR_Comm * comm,
                                      handler_id, am_hdr, am_hdr_sz, data, count, datatype, sreq);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_ISEND_REPLY);
-    return ret;
-}
-
-MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_am_recv(MPIR_Request * rreq)
-{
-    int ret = MPI_SUCCESS;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_SHM_AM_RECV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_SHM_AM_RECV);
-
-    /* TODO: handle IPC receive here */
-
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_SHM_AM_RECV);
     return ret;
 }
 
@@ -149,6 +119,11 @@ MPL_STATIC_INLINE_PREFIX bool MPIDI_SHM_am_check_eager(MPI_Aint am_hdr_sz, MPI_A
 {
     /* TODO: add checking for IPC transmission */
     return (am_hdr_sz + data_sz) <= MPIDI_POSIX_am_eager_limit();
+}
+
+MPL_STATIC_INLINE_PREFIX void *MPIDI_SHM_am_get_data_copy_cb(void)
+{
+    return NULL;
 }
 
 #endif /* SHM_AM_H_INCLUDED */

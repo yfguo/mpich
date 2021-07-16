@@ -40,18 +40,15 @@ Non Native API:
   am_isend : int
       NM*: rank, comm, handler_id, am_hdr, am_hdr_sz, data, count, datatype, sreq
      SHM*: rank, comm, handler_id, am_hdr, am_hdr_sz, data, count, datatype, sreq
-  am_isendv : int
-      NM*: rank, comm, handler_id, am_hdrs, iov_len, data, count, datatype, sreq
-     SHM*: rank, comm, handler_id, am_hdrs, iov_len, data, count, datatype, sreq
   am_send_hdr_reply : int
       NM*: comm, src_rank, handler_id, am_hdr, am_hdr_sz
      SHM*: comm, src_rank, handler_id, am_hdr, am_hdr_sz
   am_isend_reply : int
       NM*: comm, src_rank, handler_id, am_hdr, am_hdr_sz, data, count, datatype, sreq
      SHM*: comm, src_rank, handler_id, am_hdr, am_hdr_sz, data, count, datatype, sreq
-  am_recv: int
-      NM*: rreq
-     SHM*: rreq
+  am_get_data_copy_cb : void *
+      NM*: void
+     SHM*: void
   am_hdr_max_sz : MPI_Aint
       NM*: void
      SHM*: void
@@ -324,8 +321,6 @@ Native API:
      MPIDIG: assert, win
   rank_is_local : int
       NM*: target, comm
-  av_is_local : int
-      NM*: av
   mpi_barrier : int
       NM*: comm, errflag
      SHM*: comm, errflag
