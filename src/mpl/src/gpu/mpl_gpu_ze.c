@@ -58,6 +58,12 @@ int MPL_gpu_get_subdev_list(int dev_id, int *subdev_list)
     return ret;
 }
 
+int MPL_gpu_set_dev_affinity_env(int dev_count, int *dev_ids)
+{
+    int ret = MPI_SUCCESS;
+    return ret;
+}
+
 int MPL_gpu_init(void)
 {
     int mpl_err;
