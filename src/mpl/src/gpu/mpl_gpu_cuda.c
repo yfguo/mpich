@@ -18,6 +18,7 @@ typedef struct gpu_free_hook {
 static int gpu_initialized = 0;
 static int device_count = -1;
 static int max_dev_id = -1;
+static int *device_list = NULL;
 
 static int *local_to_global_map;        /* [device_count] */
 static int *global_to_local_map;        /* [max_dev_id + 1]   */
@@ -44,7 +45,18 @@ int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
 int MPL_gpu_get_dev_list(int *dev_list)
 {
     int ret = MPL_SUCCESS;
-    *dev_list = NULL;
+    if (!gpu_initialized) {
+        ret = MPL_gpu_init();
+    }
+
+    dev_list = (int *) MPL_malloc(device_count * sizeof(int));
+    assert(dev_list);
+
+    for (i = 0; i < device_count; ++i) {
+        device_list[i] = i;
+    }
+
+    *dev_list = device_list;
     return ret;
 }
 
