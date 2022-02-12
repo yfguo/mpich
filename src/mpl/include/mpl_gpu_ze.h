@@ -18,4 +18,6 @@ typedef ze_device_handle_t MPL_gpu_device_handle_t;
 typedef ze_alloc_attr_t MPL_gpu_device_attr;
 #define MPL_GPU_DEVICE_INVALID NULL
 
+#define MPL_GPU_DEV_AFFINITY_ENV "ZE_AFFINITY_MASK"
+
 #endif /* ifndef MPL_GPU_ZE_H_INCLUDED */

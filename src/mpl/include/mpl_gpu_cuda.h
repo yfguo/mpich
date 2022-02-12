@@ -14,4 +14,6 @@ typedef int MPL_gpu_device_handle_t;
 typedef struct cudaPointerAttributes MPL_gpu_device_attr;
 #define MPL_GPU_DEVICE_INVALID -1
 
+#define MPL_GPU_DEV_AFFINITY_ENV "CUDA_VISIBLE_DEVICES"
+
 #endif /* ifndef MPL_GPU_CUDA_H_INCLUDED */
