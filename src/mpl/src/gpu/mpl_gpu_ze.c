@@ -44,6 +44,20 @@ int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
     return ret;
 }
 
+int MPL_gpu_get_dev_list(int *dev_list)
+{
+    int ret = MPL_SUCCESS;
+    *dev_list = NULL;
+    return ret;
+}
+
+int MPL_gpu_get_subdev_list(int dev_id, int *subdev_list)
+{
+    int ret = MPI_SUCCESS;
+    *subdev_list = NULL;
+    return ret;
+}
+
 int MPL_gpu_init(void)
 {
     int mpl_err;
