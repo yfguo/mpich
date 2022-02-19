@@ -80,8 +80,8 @@ int MPL_gpu_get_buffer_bounds(const void *ptr, void **pbase, uintptr_t * len);
 
 int MPL_gpu_free_hook_register(void (*free_hook) (void *dptr));
 int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id);
-int MPL_gpu_get_dev_list(int *dev_list);
-int MPL_gpu_get_subdev_list(int dev_id, int *subdev_list);
+int MPL_gpu_get_dev_list(int **dev_list);
+int MPL_gpu_get_subdev_list(int dev_id, int **subdev_list);
 int MPL_gpu_dev_affinity_to_env(int dev_count, int *dev_ids, char **env);
 
 #endif /* ifndef MPL_GPU_H_INCLUDED */
