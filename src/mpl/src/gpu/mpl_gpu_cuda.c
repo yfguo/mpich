@@ -4,6 +4,7 @@
  */
 
 #include "mpl.h"
+#include "mpl_str.h"
 #include <dlfcn.h>
 #include <assert.h>
 
@@ -19,6 +20,8 @@ static int gpu_initialized = 0;
 static int device_count = -1;
 static int max_dev_id = -1;
 static int *device_list = NULL;
+#define MAX_GPU_STR_LEN 256
+static char affinity_env[MAX_GPU_STR_LEN] = { 0 };
 
 static int *local_to_global_map;        /* [device_count] */
 static int *global_to_local_map;        /* [max_dev_id + 1]   */
@@ -49,10 +52,10 @@ int MPL_gpu_get_dev_list(int **dev_list)
         ret = MPL_gpu_init();
     }
 
-    dev_list = (int *) MPL_malloc(device_count * sizeof(int));
+    dev_list = (int *) MPL_malloc(device_count * sizeof(int), MPL_MEM_OTHER);
     assert(dev_list);
 
-    for (i = 0; i < device_count; ++i) {
+    for (int i = 0; i < device_count; ++i) {
         device_list[i] = i;
     }
 
@@ -70,7 +73,22 @@ int MPL_gpu_get_subdev_list(int dev_id, int **subdev_list)
 int MPL_gpu_dev_affinity_to_env(int dev_count, int *dev_ids, char **env)
 {
     int ret = MPL_SUCCESS;
-    *env = NULL;
+    if (dev_count == 0) {
+        MPL_snprintf(affinity_env, 2, "-1");
+    } else {
+        int str_offset = 0;
+        for (int i = 0; i < dev_count; ++i) {
+            char temp_str[10] = { 0 };
+            sprintf(temp_str, "%d", dev_ids[i]);
+            if (i) {
+                MPL_strncpy(affinity_env + str_offset, ",", MAX_GPU_STR_LEN - str_offset);
+                str_offset++;
+            }
+            MPL_strncpy(affinity_env + str_offset, temp_str, MAX_GPU_STR_LEN - str_offset);
+            str_offset += strlen(temp_str);
+        }
+    }
+    *env = affinity_env;
     return ret;
 }
 
