@@ -706,32 +706,41 @@ static HYD_status launch_procs(void)
             if (HYD_pmcd_pmip.user_global.gpus_per_proc == HYD_GPUS_PER_PROC_AUTO) {
                 /* nothing to do */
             } else if (HYD_pmcd_pmip.user_global.gpus_per_proc == 0) {
-                str = HYDU_int_to_str(-1);
+                MPL_gpu_dev_affinity_to_env(0, NULL, &str);
 
-                status = HYDU_append_env_to_list("CUDA_VISIBLE_DEVICES", str, &force_env);
+                status = HYDU_append_env_to_list(MPL_GPU_DEV_AFFINITY_ENV, str, &force_env);
                 HYDU_ERR_POP(status, "unable to add env to list\n");
 
-                MPL_free(str);
             } else {
-                char cuda_str[MAX_GPU_STR_LEN] = { 0 };
-                int cuda_str_offset = 0;
+                int dev_count = 0;
+                int max_dev_id = 0;
+                int *all_dev_ids = NULL;
+                int *child_dev_ids = NULL;
+                char *affinity_env_str = NULL;
+
+                MPL_gpu_get_dev_count(&dev_count, &max_dev_id);
+                MPL_gpu_get_dev_list(&all_dev_ids);
+                child_dev_ids = (int *) MPL_malloc(dev_count * sizeof(int), MPL_MEM_OTHER);
+                HYDU_ASSERT(child_dev_ids, status);
+                memset(child_dev_ids, 0, dev_count * sizeof(int));
 
                 for (int k = 0; k < HYD_pmcd_pmip.user_global.gpus_per_proc; k++) {
                     int p = process_id * HYD_pmcd_pmip.user_global.gpus_per_proc + k;
-                    str = HYDU_int_to_str(p);
-
-                    if (k) {
-                        MPL_strncpy(cuda_str + cuda_str_offset, ",",
-                                    MAX_GPU_STR_LEN - cuda_str_offset);
-                        cuda_str_offset++;
-                    }
-                    MPL_strncpy(cuda_str + cuda_str_offset, str, MAX_GPU_STR_LEN - cuda_str_offset);
-                    cuda_str_offset += strlen(str);
-
-                    MPL_free(str);
+                    child_dev_ids[k] = all_dev_ids[p % dev_count];
+                    // GPU assignment, ignorant about CPU binding
+                    // 1. figure out CPU id that this proc binds to
+                    // 2. filter out GPUs ids that is close to this CPU
+                    //        hwloc: gpu0, gpu1, gpu2 ....
+                    //        CUDA/ZE: 0,1,2,3
+                    //        Does these number correspond with each other
+                    // 3. generate child_dev_ids
                 }
 
-                status = HYDU_append_env_to_list("CUDA_VISIBLE_DEVICES", cuda_str, &force_env);
+                MPL_gpu_dev_affinity_to_env(HYD_pmcd_pmip.user_global.gpus_per_proc, child_dev_ids,
+                                            &affinity_env_str);
+
+                status = HYDU_append_env_to_list(MPL_GPU_DEV_AFFINITY_ENV, affinity_env_str,
+                                                 &force_env);
                 HYDU_ERR_POP(status, "unable to add env to list\n");
             }
 
