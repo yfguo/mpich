@@ -4,6 +4,7 @@
  */
 
 #include "mpl.h"
+#include "mpl_gpu.h"
 
 int MPL_gpu_get_dev_count(int *dev_cnt, int *dev_id)
 {
@@ -96,4 +97,10 @@ int MPL_gpu_get_buffer_bounds(const void *ptr, void **pbase, uintptr_t * len)
 int MPL_gpu_free_hook_register(void (*free_hook) (void *dptr))
 {
     return MPL_SUCCESS;
+}
+
+int MPL_gpu_stream_launch_host_fn(MPL_gpu_stream_t stream, MPL_gpu_host_fn_t host_fn, void *data)
+{
+    abort();
+    return MPL_ERR_GPU_INTERNAL;
 }

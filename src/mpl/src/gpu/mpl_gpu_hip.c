@@ -360,6 +360,11 @@ int MPL_gpu_free_hook_register(void (*free_hook) (void *dptr))
     return MPL_SUCCESS;
 }
 
+int MPL_gpu_stream_launch_host_fn(MPL_gpu_stream_t stream, MPL_gpu_host_fn_t host_fn, void *data)
+{
+    return MPL_ERR_GPU_INTERNAL;
+}
+
 hipError_t hipFree(void *dptr)
 {
     hipError_t result;

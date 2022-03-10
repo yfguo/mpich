@@ -4,6 +4,7 @@
  */
 
 #include "mpl.h"
+#include "mpl_gpu.h"
 #include <dlfcn.h>
 #include <assert.h>
 
@@ -392,6 +393,18 @@ int MPL_gpu_free_hook_register(void (*free_hook) (void *dptr))
     }
 
     return MPL_SUCCESS;
+}
+
+int MPL_gpu_stream_launch_host_fn(MPL_gpu_stream_t stream, MPL_gpu_host_fn_t host_fn, void *data)
+{
+    cudaError_t ret;
+    ret = cudaLaunchHostFunc(stream, host_fn, data);
+    CUDA_ERR_CHECK(ret);
+
+  fn_exit:
+    return MPL_SUCCESS;
+  fn_fail:
+    return MPL_ERR_GPU_INTERNAL;
 }
 
 CUresult CUDAAPI cuMemFree(CUdeviceptr dptr)
