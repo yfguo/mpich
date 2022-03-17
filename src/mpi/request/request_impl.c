@@ -982,6 +982,57 @@ int MPIR_Wait(MPI_Request * request, MPI_Status * status)
     goto fn_exit;
 }
 
+int MPIR_Wait_stream(MPI_Request * request, MPI_Status * status, void *stream)
+{
+    int mpi_errno = MPI_SUCCESS;
+    int active_flag;
+    MPIR_Request *request_ptr = NULL;
+
+    /* If this is a null request handle, then return an empty status */
+    if (*request == MPI_REQUEST_NULL) {
+        MPIR_Status_set_empty(status);
+        goto fn_exit;
+    }
+
+    MPIR_Request_get_ptr(*request, request_ptr);
+    MPIR_Assert(request_ptr != NULL);
+
+    if (!MPIR_Request_is_complete(request_ptr)) {
+        /* If this is an anysource request including a communicator with
+         * anysource disabled, convert the call to an MPI_Test instead so we
+         * don't get stuck in the progress engine. */
+        if (unlikely(MPIR_Request_is_anysrc_mismatched(request_ptr))) {
+            mpi_errno = MPIR_Test(request, &active_flag, status);
+            goto fn_exit;
+        }
+
+        if (MPIR_Request_has_poll_fn(request_ptr)) {
+            while (!MPIR_Request_is_complete(request_ptr)) {
+                mpi_errno = MPIR_Grequest_poll(request_ptr, status);
+                MPIR_ERR_CHECK(mpi_errno);
+
+                /* Avoid blocking other threads since I am inside an infinite loop */
+                MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+            }
+        } else {
+            mpi_errno = MPID_Wait_stream(request_ptr, status, stream);
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    }
+
+    mpi_errno = MPIR_Request_completion_processing(request_ptr, status);
+    if (!MPIR_Request_is_persistent(request_ptr) && !MPIR_Request_is_partitioned(request_ptr)) {
+        MPIR_Request_free(request_ptr);
+        *request = MPI_REQUEST_NULL;
+    }
+    MPIR_ERR_CHECK(mpi_errno);
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
 /* -- Waitall -- */
 /* MPID_Waitall call MPIR_Waitall_state with initialized progress state */
 int MPIR_Waitall_state(int count, MPIR_Request * request_ptrs[], MPI_Status array_of_statuses[],

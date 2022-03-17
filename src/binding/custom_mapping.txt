@@ -4,6 +4,7 @@
 LIS_KIND_MAP:
     GPU_TYPE: integer
     GREQUEST_CLASS: None
+    STREAM: None
 
 SMALL_F90_KIND_MAP:
     GPU_TYPE: INTEGER
@@ -24,7 +25,9 @@ BIG_F08_KIND_MAP:
 SMALL_C_KIND_MAP:
     GPU_TYPE: int
     GREQUEST_CLASS: MPIX_Grequest_class
+    STREAM: void
 
 BIG_C_KIND_MAP:
     GPU_TYPE: int
     GREQUEST_CLASS: MPIX_Grequest_class
+    STREAM: void

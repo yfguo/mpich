@@ -224,6 +224,18 @@ MPI_Wait:
         goto fn_fail;
 }
 
+MPI_Wait_stream:
+    request: REQUEST, direction=inout, [request]
+    status: STATUS, direction=out
+    stream: STREAM, [GPU stream]
+    .desc: Enqueue a wait on a GPU stream
+    .docnotes: waitstatus
+{
+    mpi_errno = MPIR_Wait_stream(request, status, stream);
+    if (mpi_errno)
+        goto fn_fail;
+}
+
 MPI_Waitall:
     .desc: Waits for all given MPI Requests to complete
     .docnotes: waitstatus

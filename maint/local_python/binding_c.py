@@ -1574,7 +1574,9 @@ def get_fn_fail_create_code(func):
     mapping = get_kind_map('C', func['_is_large'])
 
     (fmts, args, err_fmts) = ([], [], [])
-    fmt_codes = {'RANK': "i", 'TAG': "t", 'COMMUNICATOR': "C", 'ASSERT': "A", 'DATATYPE': "D", 'ERRHANDLER': "E", 'FILE': "F", 'GROUP': "G", 'INFO': "I", 'OPERATION': "O", 'REQUEST': "R", 'WINDOW': "W", 'SESSION': "S", 'KEYVAL': "K", "GREQUEST_CLASS": "x"}
+    fmt_codes = {'RANK': "i", 'TAG': "t", 'COMMUNICATOR': "C", 'ASSERT': "A", 'DATATYPE': "D",
+        'ERRHANDLER': "E", 'FILE': "F", 'GROUP': "G", 'INFO': "I", 'OPERATION': "O", 'REQUEST': "R",
+        'WINDOW': "W", 'SESSION': "S", 'KEYVAL': "K", "GREQUEST_CLASS": "x", "STREAM": "p"}
     for p in func['c_parameters']:
         kind = p['kind']
         name = p['name']
@@ -1644,7 +1646,7 @@ def dump_early_return_pt2pt_proc_null(func):
     G.out.append("INDENT")
     if has_request:
         request_kind = ''
-        if RE.search(r'mpi_.*(send|recv|probe)$', func['name'], re.IGNORECASE):
+        if RE.search(r'mpi_.*(send|recv|probe)(_stream)?$', func['name'], re.IGNORECASE):
             a = RE.m.group(1)
             request_kind = "MPIR_REQUEST_KIND__" + a.upper()
         elif RE.search(r'mpi_r(put|get|accumulate|get_accumulate)$', func['name'], re.IGNORECASE):
