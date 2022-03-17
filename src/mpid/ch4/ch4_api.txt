@@ -106,6 +106,8 @@ Native API:
   mpi_isend : int
       NM*: buf, count, datatype, rank, tag, comm, context_offset, addr, req_p
      SHM*: buf, count, datatype, rank, tag, comm, context_offset, addr, req_p
+  mpi_isend_stream : int
+      NM*: buf, count, datatype, rank, tag, comm, context_offset, addr, stream, req_p
   isend_coll : int
       NM*: buf, count, datatype, rank, tag, comm, context_offset, addr, req_p, errflag
      SHM*: buf, count, datatype, rank, tag, comm, context_offset, addr, req_p, errflag
@@ -119,6 +121,8 @@ Native API:
       NM*: buf-2, count, datatype, rank, tag, comm, context_offset, addr, req_p, partner
      SHM*: buf-2, count, datatype, rank, tag, comm, context_offset, req_p
      MPIDIG: buf-2, count, datatype, rank, tag, comm, context_offset, vci, req_p
+  mpi_irecv_stream : int
+      NM*: buf-2, count, datatype, rank, tag, comm, context_offset, addr, stream, req_p, partner
   mpi_imrecv : int
       NM*: buf-2, count, datatype, message
      SHM*: buf-2, count, datatype, message
@@ -484,6 +488,7 @@ PARAM:
     size: int
     size_p: MPI_Aint *
     size-2: MPI_Aint
+    stream: MPL_gpu_stream_t
     source: int
     src_rank: int
     src_vci: int

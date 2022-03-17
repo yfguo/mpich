@@ -56,6 +56,37 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_isend(const void *buf,
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_isend_stream(const void *buf,
+                                                MPI_Aint count,
+                                                MPI_Datatype datatype,
+                                                int rank,
+                                                int tag,
+                                                MPIR_Comm * comm, int context_offset,
+                                                MPIDI_av_entry_t * av, MPL_gpu_stream_t stream,
+                                                MPIR_Request ** req)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_ENTER;
+
+#ifdef MPIDI_CH4_USE_WORK_QUEUES
+#else
+    *(req) = NULL;
+#ifdef MPIDI_CH4_DIRECT_NETMOD
+    mpi_errno = MPIDI_NM_mpi_isend_stream(buf, count, datatype, rank, tag, comm, context_offset, av,
+                                          stream, req);
+#else
+#endif
+    MPIR_ERR_CHECK(mpi_errno);
+#endif
+
+  fn_exit:
+    MPIR_FUNC_EXIT;
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
+}
+
 MPL_STATIC_INLINE_PREFIX int MPIDI_isend_coll(const void *buf,
                                               MPI_Aint count,
                                               MPI_Datatype datatype,
