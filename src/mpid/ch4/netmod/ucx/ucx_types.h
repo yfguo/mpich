@@ -38,6 +38,18 @@ typedef struct MPIDI_UCX_deferred_send {
     int vni_src;
 } MPIDI_UCX_deferred_send_t;
 
+typedef struct MPIDI_UCX_deferred_recv {
+    void *recv_buf;
+    int recv_count;
+    uint64_t ucp_tag;
+    uint64_t tag_mask;
+    ucp_request_param_t param;
+
+    MPIR_Request *partner;
+
+    int vni_dst;
+} MPIDI_UCX_deferred_recv_t;
+
 typedef struct {
     ucp_context_h context;
     MPIDI_UCX_context_t ctx[MPIDI_CH4_MAX_VCIS];

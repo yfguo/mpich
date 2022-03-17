@@ -12,6 +12,7 @@
 #include "ucx_send.h"
 #include "ucx_send_stream.h"
 #include "ucx_recv.h"
+#include "ucx_recv_stream.h"
 #include "ucx_probe.h"
 #include "ucx_win.h"
 #include "ucx_rma.h"
