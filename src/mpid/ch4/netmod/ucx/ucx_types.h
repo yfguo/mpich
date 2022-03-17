@@ -28,10 +28,22 @@ typedef struct {
     char pad[MPL_CACHELINE_SIZE];
 } MPIDI_UCX_context_t;
 
+typedef struct MPIDI_UCX_deferred_send {
+    ucp_ep_h ep;
+    const void *send_buf;
+    int send_count;
+    uint64_t ucx_tag;
+    ucp_request_param_t param;
+
+    int vni_src;
+} MPIDI_UCX_deferred_send_t;
+
 typedef struct {
     ucp_context_h context;
     MPIDI_UCX_context_t ctx[MPIDI_CH4_MAX_VCIS];
     int num_vnis;
+
+    MPIDI_UCX_deferred_send_t *deferred_send;
 } MPIDI_UCX_global_t;
 
 #define MPIDI_UCX_AV(av)     ((av)->netmod.ucx)

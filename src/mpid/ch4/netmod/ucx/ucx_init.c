@@ -234,6 +234,8 @@ int MPIDI_UCX_init_local(int *tag_bits)
         printf("===============================\n");
     }
 
+    MPIDI_UCX_global.deferred_send = NULL;
+
   fn_exit:
     return mpi_errno;
   fn_fail:
