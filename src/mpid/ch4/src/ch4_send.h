@@ -527,7 +527,8 @@ MPL_STATIC_INLINE_PREFIX int MPID_Isend_stream(const void *buf,
             MPIDI_Self_isend(buf, count, datatype, rank, tag, comm, context_offset, request);
     } else {
         av = MPIDIU_comm_rank_to_av(comm, rank);
-        mpi_errno = MPIDI_isend(buf, count, datatype, rank, tag, comm, context_offset, av, request);
+        mpi_errno = MPIDI_isend_stream(buf, count, datatype, rank, tag, comm, context_offset, av,
+                                       stream, request);
     }
 
     MPIR_ERR_CHECK(mpi_errno);

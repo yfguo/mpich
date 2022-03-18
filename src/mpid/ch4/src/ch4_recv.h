@@ -144,6 +144,37 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_irecv(void *buf,
     goto fn_exit;
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_irecv_stream(void *buf,
+                                                MPI_Aint count,
+                                                MPI_Datatype datatype,
+                                                int rank,
+                                                int tag,
+                                                MPIR_Comm * comm,
+                                                int context_offset, MPIDI_av_entry_t * av,
+                                                MPL_gpu_stream_t stream, MPIR_Request ** req)
+{
+    int mpi_errno = MPI_SUCCESS;
+    MPIR_FUNC_ENTER;
+
+#ifdef MPIDI_CH4_USE_WORK_QUEUES
+#else
+    *(req) = NULL;
+#ifdef MPIDI_CH4_DIRECT_NETMOD
+    mpi_errno = MPIDI_NM_mpi_irecv_stream(buf, count, datatype, rank, tag, comm, context_offset, av,
+                                          stream, req, NULL);
+#else
+#endif
+    MPIR_ERR_CHECK(mpi_errno);
+#endif
+
+  fn_exit:
+    MPIR_FUNC_EXIT;
+    return mpi_errno;
+
+  fn_fail:
+    goto fn_exit;
+}
+
 MPL_STATIC_INLINE_PREFIX int MPIDI_imrecv(void *buf,
                                           MPI_Aint count, MPI_Datatype datatype,
                                           MPIR_Request * message)
@@ -342,7 +373,8 @@ MPL_STATIC_INLINE_PREFIX int MPID_Irecv_stream(void *buf,
             MPIDI_Self_irecv(buf, count, datatype, rank, tag, comm, context_offset, request);
     } else {
         MPIDI_av_entry_t *av = (rank == MPI_ANY_SOURCE ? NULL : MPIDIU_comm_rank_to_av(comm, rank));
-        mpi_errno = MPIDI_irecv(buf, count, datatype, rank, tag, comm, context_offset, av, request);
+        mpi_errno = MPIDI_irecv_stream(buf, count, datatype, rank, tag, comm, context_offset, av,
+                                       stream, request);
     }
 
     MPIR_ERR_CHECK(mpi_errno);
