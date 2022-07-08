@@ -30,24 +30,12 @@ cvars:
  */
 #define MPIDI_CH4_PROG_POLL_MASK 0xff
 
-#ifdef MPL_TLS
 extern MPL_TLS int global_vci_poll_count;
-#elif defined(MPL_COMPILER_TLS)
-/*
- * If MPL_COMPILER_TLS is defined, use MPL_COMPILER_TLS.  This is the case of Argobots, for example.
- * Argobots does not have MPL_TLS since MPL_COMPILER_TLS (__thread) is not Argobots ULT local.
- * MPL_COMPILER_TLS is executions-stream-local storage from the Argobots viewpoint, but this works
- * well for this progress counter since this global_vci_poll_count is "thread-local" just to avoid
- * any conflict among parallel execution entities (i.e., POSIX threads).
- */
-extern MPL_COMPILER_TLS int global_vci_poll_count;
-#else
-extern int global_vci_poll_count;
-#endif
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_do_global_progress(void)
 {
-    if (MPIDI_global.n_vcis == 1 || !MPIDI_global.is_initialized || !MPIR_CVAR_CH4_GLOBAL_PROGRESS) {
+    if (MPIDI_global.n_total_vcis == 1 || !MPIDI_global.is_initialized ||
+        !MPIR_CVAR_CH4_GLOBAL_PROGRESS) {
         return 0;
     } else {
         global_vci_poll_count++;
@@ -81,12 +69,12 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_check_progress_made_vci(MPID_Progress_state 
 }
 
 #define MPIDI_THREAD_CS_ENTER_VCI_OPTIONAL(vci)         \
-    if (!(state->flag & MPIDI_PROGRESS_NM_LOCKLESS)) {	\
+    if (!MPIDI_VCI_IS_EXPLICIT(vci) && !(state->flag & MPIDI_PROGRESS_NM_LOCKLESS)) {	\
         MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock); \
     }
 
 #define MPIDI_THREAD_CS_EXIT_VCI_OPTIONAL(vci)          \
-    if (!(state->flag & MPIDI_PROGRESS_NM_LOCKLESS)) {  \
+    if (!MPIDI_VCI_IS_EXPLICIT(vci) && !(state->flag & MPIDI_PROGRESS_NM_LOCKLESS)) {  \
         MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);	\
     } while (0)
 
@@ -139,11 +127,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_progress_test(MPID_Progress_state * state, in
     }
     /* todo: progress unexp_list */
 
-#ifdef MPIDI_CH4_USE_WORK_QUEUES
-    mpi_errno = MPIDI_workq_vci_progress();
-    MPIR_ERR_CHECK(mpi_errno);
-#endif
-
 #if MPIDI_CH4_MAX_VCIS == 1
     /* fast path for single vci */
     MPIDI_PROGRESS(0);
@@ -153,7 +136,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_progress_test(MPID_Progress_state * state, in
 #else
     /* multiple vci */
     if (MPIDI_do_global_progress()) {
-        for (int vci = 0; vci < MPIDI_global.n_vcis; vci++) {
+        for (int vci = 0; vci < MPIDI_global.n_total_vcis; vci++) {
             MPIDI_PROGRESS(vci);
             if (wait) {
                 MPIDI_check_progress_made_vci(state, vci);
@@ -201,10 +184,10 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_progress_state_init(MPID_Progress_state * st
         state->vci_count = 1;
     } else {
         /* global progress by default */
-        for (int i = 0; i < MPIDI_global.n_vcis; i++) {
+        for (int i = 0; i < MPIDI_global.n_total_vcis; i++) {
             state->vci[i] = i;
         }
-        state->vci_count = MPIDI_global.n_vcis;
+        state->vci_count = MPIDI_global.n_total_vcis;
     }
 }
 
@@ -215,8 +198,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_progress_state_init_count(MPID_Progress_stat
 #if MPIDI_CH4_MAX_VCIS == 1
     state->progress_counts[0] = MPL_atomic_relaxed_load_int(&MPIDI_VCI(0).progress_count);
 #else
-    for (int i = 0; i < MPIDI_global.n_vcis; i++) {
-        state->progress_counts[i] = MPL_atomic_relaxed_load_int(&MPIDI_VCI(i).progress_count);
+    for (int i = 0; i < state->vci_count; i++) {
+        state->progress_counts[i] =
+            MPL_atomic_relaxed_load_int(&MPIDI_VCI(state->vci[i]).progress_count);
     }
 #endif
 }
@@ -311,12 +295,6 @@ MPL_STATIC_INLINE_PREFIX int MPID_Progress_wait(MPID_Progress_state * state)
 
     MPIR_FUNC_ENTER;
 
-#ifdef MPIDI_CH4_USE_WORK_QUEUES
-    mpi_errno = MPID_Progress_test(state);
-    MPIR_ERR_CHECK(mpi_errno);
-    MPIDI_PROGRESS_YIELD();
-
-#else
     state->progress_made = 0;
     while (1) {
         mpi_errno = MPIDI_progress_test(state, 1);
@@ -327,7 +305,6 @@ MPL_STATIC_INLINE_PREFIX int MPID_Progress_wait(MPID_Progress_state * state)
         MPIDI_PROGRESS_YIELD();
     }
 
-#endif
     MPIR_FUNC_EXIT;
 
   fn_exit:

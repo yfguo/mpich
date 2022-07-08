@@ -71,7 +71,6 @@ cvars:
       description : >-
         Specifies the CH4 multi-threading model. Possible values are:
         direct (default)
-        handoff
         lockless
 
     - name        : MPIR_CVAR_CH4_NUM_VCIS
@@ -82,7 +81,17 @@ cvars:
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_LOCAL
       description : >-
-        Sets the number of VCIs that user needs (should be a subset of MPIDI_CH4_MAX_VCIS).
+        Sets the number of VCIs to be implicitly used (should be a subset of MPIDI_CH4_MAX_VCIS).
+
+    - name        : MPIR_CVAR_CH4_RESERVE_VCIS
+      category    : CH4
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_LOCAL
+      description : >-
+        Sets the number of VCIs that user can explicitly allocate (should be a subset of MPIDI_CH4_MAX_VCIS).
 
     - name        : MPIR_CVAR_CH4_COLL_SELECTION_TUNING_JSON_FILE
       category    : COLLECTIVE
@@ -234,7 +243,6 @@ static int set_runtime_configurations(void);
 
 static const char *mt_model_names[MPIDI_CH4_NUM_MT_MODELS] = {
     "direct",
-    "handoff",
     "lockless",
 };
 
@@ -360,9 +368,6 @@ int MPID_Init(int requested, int *provided)
 
     choose_netmod();
 
-    mpi_errno = MPIR_pmi_init();
-    MPIR_ERR_CHECK(mpi_errno);
-
     /* Create all ch4-layer granular locks.
      * Note: some locks (e.g. MPIDIU_THREAD_HCOLL_MUTEX) may be unused due to configuration.
      * It is harmless to create them anyway rather than adding #ifdefs.
@@ -384,9 +389,6 @@ int MPID_Init(int requested, int *provided)
         fprintf(stdout, "==== Various sizes and limits ====\n");
         fprintf(stdout, "sizeof(MPIDI_per_vci_t): %d\n", (int) sizeof(MPIDI_per_vci_t));
     }
-#ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPIDI_workq_init(&MPIDI_global.workqueue);
-#endif /* #ifdef MPIDI_CH4_USE_WORK_QUEUES */
 
     /* These mutex are used for the lockless MT model. */
     if (MPIDI_CH4_MT_MODEL == MPIDI_CH4_MT_LOCKLESS) {
@@ -404,16 +406,17 @@ int MPID_Init(int requested, int *provided)
 
     /* Initialize multiple VCIs */
     /* TODO: add checks to ensure MPIDI_vci_t is padded or aligned to MPL_CACHELINE_SIZE */
-    MPIDI_global.n_vcis = 1;
-    if (MPIR_CVAR_CH4_NUM_VCIS > 1) {
-        MPIDI_global.n_vcis = MPIR_CVAR_CH4_NUM_VCIS;
-        /* There are configured maxes that we need observe. */
-        /* TODO: check them at configure time to avoid discrepancy */
-        MPIR_Assert(MPIDI_global.n_vcis <= MPIDI_CH4_MAX_VCIS);
-        MPIR_Assert(MPIDI_global.n_vcis <= MPIR_REQUEST_NUM_POOLS);
-    }
+    MPIR_Assert(MPIR_CVAR_CH4_NUM_VCIS >= 1);   /* number of vcis used in implicit vci hashing */
+    MPIR_Assert(MPIR_CVAR_CH4_RESERVE_VCIS >= 0);       /* maximum number of vcis can be reserved */
 
-    for (int i = 0; i < MPIDI_global.n_vcis; i++) {
+    MPIDI_global.n_vcis = MPIR_CVAR_CH4_NUM_VCIS;
+    MPIDI_global.n_total_vcis = MPIDI_global.n_vcis + MPIR_CVAR_CH4_RESERVE_VCIS;
+    MPIDI_global.n_reserved_vcis = 0;
+
+    MPIR_Assert(MPIDI_global.n_total_vcis <= MPIDI_CH4_MAX_VCIS);
+    MPIR_Assert(MPIDI_global.n_total_vcis <= MPIR_REQUEST_NUM_POOLS);
+
+    for (int i = 0; i < MPIDI_global.n_total_vcis; i++) {
         int err;
         MPID_Thread_mutex_create(&MPIDI_VCI(i).lock, &err);
         MPIR_Assert(err == 0);
@@ -507,6 +510,40 @@ int MPID_InitCompleted(void)
     goto fn_exit;
 }
 
+int MPID_Allocate_vci(int *vci)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    *vci = 0;
+#if MPIDI_CH4_MAX_VCIS == 1
+    MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**ch4nostream");
+#else
+
+    if (MPIDI_global.n_vcis + MPIDI_global.n_reserved_vcis >= MPIDI_global.n_total_vcis) {
+        MPIR_ERR_SET(mpi_errno, MPI_ERR_OTHER, "**outofstream");
+    } else {
+        MPIDI_global.n_reserved_vcis++;
+        for (int i = MPIDI_global.n_vcis; i < MPIDI_global.n_total_vcis; i++) {
+            if (!MPIDI_VCI(i).allocated) {
+                MPIDI_VCI(i).allocated = true;
+                *vci = i;
+                break;
+            }
+        }
+    }
+#endif
+    return mpi_errno;
+}
+
+int MPID_Deallocate_vci(int vci)
+{
+    MPIR_Assert(vci < MPIDI_global.n_total_vcis && vci >= MPIDI_global.n_vcis);
+    MPIR_Assert(MPIDI_VCI(vci).allocated);
+    MPIDI_VCI(vci).allocated = false;
+    MPIDI_global.n_reserved_vcis--;
+    return MPI_SUCCESS;
+}
+
 int MPID_Finalize(void)
 {
     int mpi_errno;
@@ -539,7 +576,7 @@ int MPID_Finalize(void)
         MPIR_Assert(err == 0);
     }
 
-    for (int i = 0; i < MPIDI_global.n_vcis; i++) {
+    for (int i = 0; i < MPIDI_global.n_total_vcis; i++) {
         int err;
         MPID_Thread_mutex_destroy(&MPIDI_VCI(i).lock, &err);
         MPIR_Assert(err == 0);
@@ -623,59 +660,51 @@ void *MPID_Alloc_mem(MPI_Aint size, MPIR_Info * info_ptr)
 {
     MPIR_FUNC_ENTER;
 
-    char val[MPI_MAX_INFO_VAL + 1];
     MPIR_hwtopo_gid_t mem_gid = MPIR_HWTOPO_GID_ROOT;
     alloc_mem_buf_type_e buf_type = ALLOC_MEM_BUF_TYPE__UNSET;
     void *user_buf = NULL;
     void *real_buf;
     int alignment = MAX_ALIGNMENT;
 
-    MPIR_Info *curr_info;
-    LL_FOREACH(info_ptr, curr_info) {
-        if (curr_info->key == NULL)
-            continue;
-
-        int flag = 0;
-        MPIR_Info_get_impl(info_ptr, "mpich_buf_type", MPI_MAX_INFO_VAL, val, &flag);
-
-        if (flag) {
-            if (!strcmp(val, "ddr")) {
-                mem_gid = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__DDR);
-                if (mem_gid == MPIR_HWTOPO_GID_ROOT) {
-                    buf_type = ALLOC_MEM_BUF_TYPE__UNSET;
-                } else {
-                    buf_type = ALLOC_MEM_BUF_TYPE__DDR;
-                }
-            } else if (!strcmp(val, "hbm")) {
-                mem_gid = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__HBM);
-                if (mem_gid == MPIR_HWTOPO_GID_ROOT) {
-                    /* if mem_gid = MPIR_HWTOPO_GID_ROOT and mem_type
-                     * is non-default (DDR) it can mean either that
-                     * the requested memory type is not available in
-                     * the system or the requested memory type is
-                     * available but there are many devices of such
-                     * type and the process requesting memory is not
-                     * bound to any of them. Regardless the reason we
-                     * do not fall back to the default allocation and
-                     * return a NULL pointer to the upper layer
-                     * instead. */
-                    goto fn_exit;
-                } else {
-                    buf_type = ALLOC_MEM_BUF_TYPE__HBM;
-                }
-            } else if (!strcmp(val, "network")) {
-                buf_type = ALLOC_MEM_BUF_TYPE__NETMOD;
-            } else if (!strcmp(val, "shmem")) {
-                buf_type = ALLOC_MEM_BUF_TYPE__SHMMOD;
+    const char *val;
+    val = MPIR_Info_lookup(info_ptr, "mpich_buf_type");
+    if (val) {
+        if (!strcmp(val, "ddr")) {
+            mem_gid = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__DDR);
+            if (mem_gid == MPIR_HWTOPO_GID_ROOT) {
+                buf_type = ALLOC_MEM_BUF_TYPE__UNSET;
             } else {
-                assert(0);
+                buf_type = ALLOC_MEM_BUF_TYPE__DDR;
             }
+        } else if (!strcmp(val, "hbm")) {
+            mem_gid = MPIR_hwtopo_get_obj_by_type(MPIR_HWTOPO_TYPE__HBM);
+            if (mem_gid == MPIR_HWTOPO_GID_ROOT) {
+                /* if mem_gid = MPIR_HWTOPO_GID_ROOT and mem_type
+                 * is non-default (DDR) it can mean either that
+                 * the requested memory type is not available in
+                 * the system or the requested memory type is
+                 * available but there are many devices of such
+                 * type and the process requesting memory is not
+                 * bound to any of them. Regardless the reason we
+                 * do not fall back to the default allocation and
+                 * return a NULL pointer to the upper layer
+                 * instead. */
+                goto fn_exit;
+            } else {
+                buf_type = ALLOC_MEM_BUF_TYPE__HBM;
+            }
+        } else if (!strcmp(val, "network")) {
+            buf_type = ALLOC_MEM_BUF_TYPE__NETMOD;
+        } else if (!strcmp(val, "shmem")) {
+            buf_type = ALLOC_MEM_BUF_TYPE__SHMMOD;
+        } else {
+            assert(0);
         }
+    }
 
-        MPIR_Info_get_impl(info_ptr, "mpi_minimum_memory_alignment", MPI_MAX_INFO_VAL, val, &flag);
-        if (flag) {
-            alignment = atoi(val);
-        }
+    val = MPIR_Info_lookup(info_ptr, "mpi_minimum_memory_alignment");
+    if (val) {
+        alignment = atoi(val);
     }
 
     switch (buf_type) {
@@ -750,7 +779,7 @@ int MPID_Free_mem(void *user_buf)
 #ifdef MAP_ANON
             MPL_munmap(container->real_buf, container->size, MPL_MEM_USER);
 #else
-            MPL_free(container->real_buf, MPL_MEM_USER);
+            MPL_free(container->real_buf);
 #endif
             break;
 

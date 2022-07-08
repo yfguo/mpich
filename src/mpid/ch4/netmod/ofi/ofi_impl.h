@@ -41,27 +41,6 @@ ATTRIBUTE((unused));
 int MPIDI_OFI_progress_uninlined(int vni);
 int MPIDI_OFI_handle_cq_error(int vni, int nic, ssize_t ret);
 
-/* vni mapping */
-/* NOTE: concerned by the modulo? If we restrict num_vnis to power of 2,
- * we may get away with bit mask */
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_vni(int flag, MPIR_Comm * comm_ptr,
-                                               int src_rank, int dst_rank, int tag)
-{
-#if MPIDI_CH4_MAX_VCIS == 1
-    return 0;
-#else
-    return MPIDI_get_vci(flag, comm_ptr, src_rank, dst_rank, tag) % MPIDI_OFI_global.num_vnis;
-#endif
-}
-
-/* for RMA, vni need be persistent with window */
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_win_vni(MPIR_Win * win)
-{
-    int win_idx = 0;
-    return MPIDI_get_vci(SRC_VCI_FROM_SENDER, win->comm_ptr, 0, 0, win_idx) %
-        MPIDI_OFI_global.num_vnis;
-}
-
 /*
  * Helper routines and macros for request completion
  */
@@ -193,21 +172,21 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_win_vni(MPIR_Win * win)
 
 #define MPIDI_OFI_THREAD_CS_ENTER_VCI_OPTIONAL(vci_)            \
     do {                                                        \
-        if (MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {      \
+        if (!MPIDI_VCI_IS_EXPLICIT(vci_) && MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {      \
             MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_).lock);    \
         }                                                       \
     } while (0)
 
 #define MPIDI_OFI_THREAD_CS_ENTER_REC_VCI_OPTIONAL(vci_)        \
     do {                                                        \
-        if (MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {      \
+        if (!MPIDI_VCI_IS_EXPLICIT(vci_) && MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {      \
             MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(vci_).lock);     \
         }                                                       \
     } while (0)
 
 #define MPIDI_OFI_THREAD_CS_EXIT_VCI_OPTIONAL(vci_)         \
     do {                                                    \
-        if (MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {  \
+        if (!MPIDI_VCI_IS_EXPLICIT(vci_) && MPIDI_CH4_MT_MODEL != MPIDI_CH4_MT_LOCKLESS) {  \
             MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock); \
         }                                                   \
     } while (0)
@@ -310,10 +289,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_mr_bind(struct fi_info *prov, struct fid_
     if (prov->domain_attr->mr_mode == FI_MR_ENDPOINT) {
         /* Bind the memory region to the endpoint */
         MPIDI_OFI_CALL(fi_mr_bind(mr, &ep->fid, 0ULL), mr_bind);
-        /* Bind the memory region to the counter */
-        if (cntr != NULL) {
-            MPIDI_OFI_CALL(fi_mr_bind(mr, &cntr->fid, 0ULL), mr_bind);
-        }
         MPIDI_OFI_CALL(fi_mr_enable(mr), mr_enable);
     }
 
@@ -607,10 +582,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_multx_sender_nic_index(MPIR_Comm * comm,
 {
     int nic_idx = 0;
 
-    /* TODO - If there is a communicator specific mapping, that should be checked/used here. */
-    /* TODO - We should use the per-communicator value for the maximum number of NICs in this
-     *        calculation once we have a per-communicator value for it. */
-    if (MPIDI_OFI_COMM(comm).enable_hashing) {
+    if (MPIDI_OFI_COMM(comm).pref_nic) {
+        nic_idx = MPIDI_OFI_COMM(comm).pref_nic[comm->rank];
+    } else if (MPIDI_OFI_COMM(comm).enable_hashing) {
+        /* TODO - We should use the per-communicator value for the maximum number of NICs in this
+         *        calculation once we have a per-communicator value for it. */
         nic_idx = ((unsigned int) (MPIR_CONTEXT_READ_FIELD(PREFIX, ctxid_in_effect) +
                                    receiver_rank + tag)) % MPIDI_OFI_global.num_nics;
     }
@@ -633,10 +609,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_multx_receiver_nic_index(MPIR_Comm * comm
 {
     int nic_idx = 0;
 
-    /* TODO - If there is a communicator specific mapping, that should be checked/used here. */
-    /* TODO - We should use the per-communicator value for the maximum number of NICs in this
-     *        calculation once we have a per-communicator value for it. */
-    if (MPIDI_OFI_COMM(comm).enable_hashing) {
+    if (MPIDI_OFI_COMM(comm).pref_nic) {
+        nic_idx = MPIDI_OFI_COMM(comm).pref_nic[comm->rank];
+    } else if (MPIDI_OFI_COMM(comm).enable_hashing) {
+        /* TODO - We should use the per-communicator value for the maximum number of NICs in this
+         *        calculation once we have a per-communicator value for it. */
         nic_idx = ((unsigned int) (MPIR_CONTEXT_READ_FIELD(PREFIX, ctxid_in_effect) +
                                    sender_rank + tag)) % MPIDI_OFI_global.num_nics;
     }

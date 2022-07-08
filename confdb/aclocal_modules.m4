@@ -60,7 +60,7 @@ AC_DEFUN([PAC_CONFIG_HWLOC_EMBEDDED],[
 ])
 
 AC_DEFUN([PAC_CONFIG_HWLOC],[
-    dnl minor difference from e.g. mpl and zm -- we'll prioritize system hwloc by default
+    dnl minor difference from e.g. mpl -- we'll prioritize system hwloc by default
     PAC_CHECK_HEADER_LIB_OPTIONAL([hwloc],[hwloc.h],[hwloc],[hwloc_topology_set_pid])
     if test "$pac_have_hwloc" = "yes" -a "$with_hwloc" != "embedded"; then
         AC_MSG_CHECKING([if hwloc meets minimum version requirement])
@@ -95,14 +95,6 @@ AC_DEFUN([PAC_CONFIG_HWLOC],[
             fi
             PAC_APPEND_FLAG([-I${use_top_srcdir}/modules/hwloc/include],[CPPFLAGS])
             PAC_APPEND_FLAG([-I${main_top_builddir}/modules/hwloc/include],[CPPFLAGS])
-
-            # capture the line -- S["HWLOC_EMBEDDED_LIBS"]="-lm "
-            hwloc_embedded_libs=$(awk -F'"' '/^S."HWLOC_EMBEDDED_LIBS"/ {print $[]4}' modules/hwloc/config.status)
-            echo "hwloc_embedded_libs = $hwloc_embedded_libs"
-            if test -n "$hwloc_embedded_libs" ; then
-                dnl TODO: split and add individual lib
-                PAC_LIBS_ADD([$hwloc_embedded_libs])
-            fi
         ], [
             dnl ---- sub-configure (hydra) ----
             if test "$FROM_MPICH" = "yes"; then

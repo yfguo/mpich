@@ -99,20 +99,6 @@ MPL_STATIC_INLINE_PREFIX MPIR_Context_id_t MPIDIG_win_to_context(const MPIR_Win 
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDIU_request_complete(MPIR_Request * req)
-{
-    int incomplete;
-
-    MPIR_FUNC_ENTER;
-
-    MPIR_cc_decr(req->cc_ptr, &incomplete);
-    if (!incomplete) {
-        MPIDI_CH4_REQUEST_FREE(req);
-    }
-
-    MPIR_FUNC_EXIT;
-}
-
 MPL_STATIC_INLINE_PREFIX MPIDIG_win_target_t *MPIDIG_win_target_add(MPIR_Win * win, int rank)
 {
     MPIR_FUNC_ENTER;
@@ -619,6 +605,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_progress_test_vci(int vci);
 #define MPIDIG_RMA_OP_CHECK_SYNC(target_rank, win) if (0) goto fn_fail;
 #define MPIDIG_EPOCH_FENCE_EVENT(win, massert) do {} while (0)
 #endif /* HAVE_ERROR_CHECKING */
+
+#define MPIDI_WIN_TARGET_VCI(win, rank) \
+    (MPIDI_WIN(win, vci_table) ? MPIDI_WIN(win, vci_table)[rank] : MPIDI_WIN(win, am_vci))
 
 /*
   Calculate base address of the target window at the origin side

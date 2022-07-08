@@ -14,6 +14,8 @@
 
 int MPID_Init(int, int *);
 int MPID_InitCompleted(void);
+int MPID_Allocate_vci(int *vci);
+int MPID_Deallocate_vci(int vci);
 MPL_STATIC_INLINE_PREFIX int MPID_Cancel_recv(MPIR_Request *) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPID_Cancel_send(MPIR_Request *) MPL_STATIC_INLINE_SUFFIX;
 int MPID_Comm_disconnect(MPIR_Comm *);
@@ -342,8 +344,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_av_is_local(MPIDI_av_entry_t * av);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
 #include "shm_impl.h"
 #endif
-
-#include "ch4i_workq.h"
 
 #include "ch4_probe.h"
 #include "ch4_send.h"

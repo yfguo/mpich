@@ -114,6 +114,8 @@ def dump_f90_func(func):
 
 def dump_f90_constants():
     def get_op_procname(a, op):
+        if RE.match(r'MPIX?_(\w+)', a):
+            a = RE.m.group(1)
         if op == '.EQ.':
             return a.lower() + 'eq'
         elif op == '.NE.':
@@ -132,9 +134,9 @@ def dump_f90_constants():
 
     for a in G.handle_list:
         G.out.append("")
-        dump_F_type_open("MPI_%s" % a)
+        dump_F_type_open("%s" % a)
         G.out.append("INTEGER :: MPI_VAL")
-        dump_F_type_close("MPI_%s" % a)
+        dump_F_type_close("%s" % a)
 
     for op in ['.EQ.', '.NE.']:
         G.out.append("")
@@ -150,7 +152,7 @@ def dump_f90_constants():
             procname = get_op_procname(a, op)
             G.out.append("")
             G.out.append("LOGICAL FUNCTION %s(lhs, rhs)" % procname)
-            G.out.append("    TYPE(MPI_%s), INTENT(IN) :: lhs, rhs" % a)
+            G.out.append("    TYPE(%s), INTENT(IN) :: lhs, rhs" % a)
             G.out.append("    %s = lhs%%MPI_VAL %s rhs%%MPI_VAL" % (procname, op))
             G.out.append("END FUNCTION %s" % procname)
 
@@ -159,7 +161,10 @@ def dump_f90_sizeofs():
     # deprecated in MPI-4, replaced by Fortran intrinsic c_sizeof() and storage_size()
     types = {}  # list of types we support
     types['CH1'] = "CHARACTER"
-    types['L4'] = "LOGICAL"
+    types["L%d" % int(G.opts['f-logical-size'])] = "LOGICAL"
+    # NOTE: we assume the fixed-size types are available. The alternative is to use
+    #       integer kind and real kind. MPI_SIZEOF is deprecated. We'll keep it simple
+    #       until we encounter compilers doesn't support fixed-size types.
     types['I1'] = "INTEGER*1"
     types['I2'] = "INTEGER*2"
     types['I4'] = "INTEGER*4"
@@ -168,15 +173,6 @@ def dump_f90_sizeofs():
     types['R8'] = "REAL*8"
     types['CX8'] = "COMPLEX*8"
     types['CX16'] = "COMPLEX*16"
-    # we may need to configure grom G.opts if types such as INTEGER*4 is not available
-    if False:
-        k = "I%d" % G.opts['fint-size']
-        types[k] = "INTEGER"
-        # assuming REAL is 4-byte and DOUBLE PRECISION is 8-byte
-        types['R4'] = "REAL"
-        types['R8'] = "DOUBLE PRECISION"
-        types['CX8'] = "COMPLEX"
-        types['CX16'] = "DOUBLE COMPLEX"
 
     G.out.append("PUBLIC :: MPI_SIZEOF")
     G.out.append("INTERFACE MPI_SIZEOF")

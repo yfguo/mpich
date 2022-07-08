@@ -46,6 +46,9 @@ AM_MAINTAINER_MODE([enable])
 # Non-verbose make by default
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
+# save CXX before we overwrite it. We need it for NVCC's -ccbin
+save_CXX="$CXX"
+
 if test -z "$mpich_top_srcdir" ; then
     if test -z "$top_srcdir" ; then
        use_top_srcdir=$srcdir
@@ -433,6 +436,39 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include "mpi.h"],[return 1 + MPICH;])],
     [MPI_IS_MPICH=yes],[MPI_IS_MPICH=no])
 AC_MSG_RESULT($MPI_IS_MPICH)
 
+if test "$MPI_IS_MPICH" = "yes" ; then
+    # try mpichversion
+    AC_PATH_PROG(MPICHVERSION, mpichversion, [], [$PATH:$with_mpi/bin])
+    if test -n "$MPICHVERSION" ; then
+        $MPICHVERSION > conftest.output
+        # netmod
+        if [grep 'MPICH Device:[[:blank:]]*ch4:ofi' conftest.output > /dev/null] ; then
+            AC_MSG_NOTICE([Detected MPICH with ch4:ofi netmod])
+            AC_DEFINE(MPICH_CH4_OFI, 1, [define if it is mpich with ch4:ofi])
+        elif [grep 'MPICH Device:[[:blank:]]*ch4:ucx' conftest.output > /dev/null] ; then
+            AC_MSG_NOTICE([Detected MPICH with ch4:ucx netmod])
+            AC_DEFINE(MPICH_CH4_UCX, 1, [define if it is mpich with ch4:ucx])
+            enable_spawn=no
+        fi
+
+        # enable_checkerrors
+        if test "$enable_checkerrors" != "no" ; then
+            if grep 'disable-error-checking\|enable-error-checking=no' conftest.output > /dev/null ; then
+                enable_checkerrors=no
+            fi
+        fi
+
+        #enable_spawn
+        if test "$enable_spawn" != "no" ; then
+            if grep 'enable-ch4-am-only' conftest.output > /dev/null ; then
+                enable_spawn=no
+            fi
+        fi
+
+        rm conftest.output
+    fi
+fi
+
 # First, determine whether we are/can support the language bindings
 #
 # Since F90/F90FLAGS are replaced by FC/FCFLAGS, rather than silently
@@ -476,6 +512,21 @@ AC_SUBST(comm_overlap)
 
 # The multi-thread tests can be disabled by --disable-threads
 threadsdir="threads"
+if test "$enable_threads" != "no" ; then
+    AC_MSG_CHECKING([whether MPI_THREAD_MULTIPLE is supported])
+    AC_RUN_IFELSE([
+            AC_LANG_PROGRAM([#include "mpi.h"],[
+                int provided;
+                MPI_Init_thread(0,0, MPI_THREAD_MULTIPLE, &provided);
+                MPI_Finalize();
+                if (provided != MPI_THREAD_MULTIPLE) {
+                    exit(1);
+                }
+            ])
+        ],[enable_threads=yes],[enable_threads=no])
+    AC_MSG_RESULT($enable_threads)
+fi
+
 if test "$enable_threads" = "no"; then
     threadsdir=""
 fi
@@ -501,6 +552,22 @@ MPILIBLOC=""
 AC_SUBST(MPILIBLOC)
 
 namepub_tests="#"
+if test "$enable_namepub" != "no" ; then
+    AC_MSG_CHECKING([whether MPI_Publish_name is supported])
+    AC_RUN_IFELSE([
+            AC_LANG_PROGRAM([#include "mpi.h"],[
+                int rc;
+                MPI_Init(0,0);
+                rc = MPI_Publish_name("servname", MPI_INFO_NULL, "otherhost:122");
+                MPI_Finalize();
+                if (rc) {
+                    exit(1);
+                }
+            ])
+        ],[enable_namepub=yes],[enable_namepub=no])
+    AC_MSG_RESULT($enable_namepub)
+fi
+
 if test "$enable_namepub" = "yes" ; then
     namepub_tests=""
 fi
@@ -671,9 +738,17 @@ if test "X${pac_have_cuda}" = "Xyes" ; then
         else
             cuda_LDFLAGS="-L${with_cuda}/lib"
         fi
-        AC_PATH_PROG([NVCC], [nvcc], [nvcc_not_found], [$with_cuda/bin:$PATH])
-    else
-        AC_PATH_PROG([NVCC], [nvcc], [nvcc_not_found])
+    fi
+
+    if test -z "$NVCC" ; then
+        if test -n "${with_cuda}" -a "$with_cuda" != "no" ; then
+            AC_PATH_PROG([NVCC], [nvcc], [nvcc_not_found], [$with_cuda/bin:$PATH])
+        else
+            AC_PATH_PROG([NVCC], [nvcc], [nvcc_not_found])
+        fi
+        if test "$NVCC" != "nvcc_not_found" -a -n "$save_CXX" ; then
+            NVCC="$NVCC -ccbin $save_CXX"
+        fi
     fi
     cuda_LIBS="-lcudart"
 
@@ -1249,6 +1324,50 @@ if test "$enable_fc" = yes ; then
     AC_LANG_POP([Fortran])
 fi
 
+# The f77/profile tests will failed to link if we are doing static linking and using
+# libmpi+libpmpi. The compiler will complain of multiple definition of the profiled
+# profiled routines. It still can be built if we pass the -Wl,--allow-multiple-definition
+# flag. For simplicity, we disable the test for this case.
+#
+f77profile=
+AC_SUBST(f77profile)
+if test "$f77dir" = "f77" ; then
+    AC_MSG_CHECKING([that f77/profile tests can be built])
+    AC_LANG_PUSH([Fortran])
+    AC_LINK_IFELSE([
+        AC_LANG_SOURCE([
+            program main
+            integer ierr
+            integer msg(1)
+            call mpi_init(ierr)
+            call mpi_send(msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, ierr)
+            call mpi_finalize(ierr)
+            end
+
+            subroutine mpi_send(msg, count, dtype, dest, tag, comm, ierr)
+            include "mpif.h"
+            integer count, dtype, dest, tag, comm, ierr
+            integer msg(count)
+            call pmpi_send(msg, count, dtype, dest, tag, comm, ierr)
+            return
+            end
+        ])
+    ],[
+        AC_MSG_RESULT(yes)
+        f77profile="profile"
+    ],[
+        AC_MSG_RESULT(no)
+    ])
+    AC_LANG_POP([Fortran])
+fi
+
+# The f90/profile tests uses the mechanism of e.g. "use mpi, skip_mpi_send => mpi_send".
+# If mpi.mod doesn't contain the routine interface, for example, when ignore TKR isn't
+# available, it need use the f77 mechanism of direct linking. For simplicity, here we
+# disable the profile test if that's the case.
+#
+f90profile=
+AC_SUBST(f90profile)
 if test "$f90dir" = "f90" ; then
     AC_MSG_CHECKING([that mpi module contains choice buffer routines])
     AC_LANG_PUSH([Fortran])
@@ -1260,10 +1379,9 @@ if test "$f90dir" = "f90" ; then
         ])
     ],[
         AC_MSG_RESULT(yes)
+        f90profile="profile"
     ],[
         AC_MSG_RESULT(no)
-        # patch f90/profile tests
-        find "$srcdir/f90/profile" -name "*.f90" -exec sed -i "s/use mpi, skip_.*/use mpi/" {} \;
     ])
     AC_LANG_POP([Fortran])
 fi

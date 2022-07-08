@@ -15,18 +15,19 @@
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint count,
                                                       MPI_Datatype datatype, int rank, int tag,
-                                                      MPIR_Comm * comm, int context_offset,
+                                                      MPIR_Comm * comm, int attr,
                                                       MPIDI_av_entry_t * addr,
                                                       MPIR_Request ** request, bool * done)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_ENTER;
 
-    /* note: MPIDI_POSIX_SEND_VSIS defined in posix_send.h */
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
     int vsi_src, vsi_dst;
+    /* note: MPIDI_POSIX_SEND_VSIS defined in posix_send.h */
     MPIDI_POSIX_SEND_VSIS(vsi_src, vsi_dst);
 
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vsi_src).lock);
+    MPIDI_POSIX_THREAD_CS_ENTER_VCI(vsi_src);
 
     if (rank == comm->rank) {
         goto fn_exit;
@@ -113,7 +114,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint 
          * threshold may be required to tradeoff the flattening overhead.*/
     }
   fn_exit:
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vsi_src).lock);
+    MPIDI_POSIX_THREAD_CS_EXIT_VCI(vsi_src);
     MPIR_FUNC_EXIT;
     return mpi_errno;
   fn_fail:
@@ -122,11 +123,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint 
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_isend(const void *buf, MPI_Aint count,
                                                  MPI_Datatype datatype, int rank, int tag,
-                                                 MPIR_Comm * comm, int context_offset,
+                                                 MPIR_Comm * comm, int attr,
                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_ENTER;
+
+    int context_offset = MPIR_PT2PT_ATTR_CONTEXT_OFFSET(attr);
 
     bool done = false;
     mpi_errno = MPIDI_IPCI_try_lmt_isend(buf, count, datatype, rank, tag, comm,
@@ -135,7 +138,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_isend(const void *buf, MPI_Aint count
 
     if (!done) {
         mpi_errno = MPIDI_POSIX_mpi_isend(buf, count, datatype, rank, tag, comm,
-                                          context_offset, addr, request);
+                                          attr, addr, request);
         MPIR_ERR_CHECK(mpi_errno);
     }
 

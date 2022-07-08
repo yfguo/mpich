@@ -40,22 +40,37 @@ typedef void (*MPL_thread_func_t) (void *data);
 #define MPL_thread_mutex_destroy(mutex_ptr_, err_ptr_) { *((int*)err_ptr_) = 0;}
 #define MPL_thread_init(err_ptr_)      do { *((int*)err_ptr_) = 0;} while (0)
 #define MPL_thread_finalize(err_ptr_)  do { *((int*)err_ptr_) = 0;} while (0)
+#define MPL_thread_mutex_lock(mutex_ptr_, err_ptr_, prio_)   do { } while (0)
+#define MPL_thread_mutex_unlock(mutex_ptr_, err_ptr_)        do { } while (0)
 #define MPL_thread_yield()             do { } while (0)
 #else
 #error "thread package (MPL_THREAD_PACKAGE_NAME) not defined or unknown"
 #endif
 
+/* If the semantics of TLS is optional, i.e. collision or even corruption is ok,
+ * MPL_TLS is always defined and can be used directly.
+ * When the TLS semantics is critical, always check MPL_HAS_TLS and supply work-
+ * around.
+ */
+#undef MPL_HAS_TLS
+
 #if MPL_THREAD_PACKAGE_NAME == MPL_THREAD_PACKAGE_NONE
 #define MPL_TLS /* empty */
+#define MPL_HAS_TLS 1
 
-#elif defined(MPL_COMPILER_TLS) && !defined(MPL_NO_COMPILER_TLS)
+#elif defined(MPL_COMPILER_TLS)
+#define MPL_TLS MPL_COMPILER_TLS
 /* Thread package such as argobots may define MPL_NO_COMPILER_TLS to indicate that
  * compiler native tls (e.g. __thread) should not be used.
  */
-#define MPL_TLS MPL_COMPILER_TLS
+#if !defined(MPL_NO_COMPILER_TLS)
+#define MPL_HAS_TLS 1
+#endif
 
 #else
-/* undef MPL_TLS */
+/* MPL_TLS is still defined so it can be used where TLS semantics is optional.
+ * When TLS semantics is critical, guard MPL_TLS usage with #ifdef MPL_HAS_TLS */
+#define MPL_TLS /* empty */
 
 #endif
 

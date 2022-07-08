@@ -72,7 +72,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
     /* allocate request */
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_win_request_create();
     MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
-    req->vni = MPIDI_OFI_WIN(win).vni;
+    req->vni = MPIDI_WIN(win, am_vci);
     req->next = MPIDI_OFI_WIN(win).syncQ;
     MPIDI_OFI_WIN(win).syncQ = req;
     req->sigreq = sigreq;
@@ -104,14 +104,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
     origin_iov = MPL_malloc(sizeof(struct iovec) * origin_len, MPL_MEM_RMA);
 
     if (sigreq) {
-#ifdef MPIDI_CH4_USE_WORK_QUEUES
-        if (*sigreq) {
-            MPIR_Request_add_ref(*sigreq);
-        } else
-#endif
-        {
-            MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
-        }
+        MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
     } else {
         flags = FI_DELIVERY_COMPLETE;
@@ -131,7 +124,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
 
         msg_len = MPL_MIN(origin_iov[origin_cur].iov_len, target_iov[target_cur].iov_len);
 
-        int vni = MPIDI_OFI_WIN(win).vni;
+        int vni = MPIDI_WIN(win, am_vci);
         int nic = 0;
         msg.desc = NULL;
         msg.addr = MPIDI_OFI_av_to_phys(addr, nic, vni, vni);
@@ -377,7 +370,7 @@ int MPIDI_OFI_pack_put(const void *origin_addr, int origin_count,
     /* allocate request */
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_win_request_create();
     MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
-    req->vni = MPIDI_OFI_WIN(win).vni;
+    req->vni = MPIDI_WIN(win, am_vci);
     req->sigreq = sigreq;
 
     /* allocate target iovecs */
@@ -438,7 +431,7 @@ int MPIDI_OFI_pack_get(void *origin_addr, int origin_count,
     /* allocate request */
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_win_request_create();
     MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
-    req->vni = MPIDI_OFI_WIN(win).vni;
+    req->vni = MPIDI_WIN(win, am_vci);
     req->sigreq = sigreq;
 
     /* allocate target iovecs */
