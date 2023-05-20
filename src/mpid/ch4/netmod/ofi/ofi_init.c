@@ -1486,6 +1486,8 @@ int ofi_am_init(void)
 {
     int mpi_errno = MPI_SUCCESS;
 
+    MPIDI_OFI_global.am_bufs_registered = false;
+
     if (MPIDI_OFI_ENABLE_AM) {
         /* Maximum possible message size for short message send (=eager send)
          * See MPIDI_OFI_do_am_isend for short/long switching logic */
