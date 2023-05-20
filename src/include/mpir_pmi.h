@@ -20,6 +20,7 @@
 
 #elif defined(USE_PMI2_CRAY)
 #include <pmi2.h>
+#define PMI_keyval_t PMI2_keyval_t
 
 #elif defined(USE_PMI1_API)
 #include <pmi.h>
