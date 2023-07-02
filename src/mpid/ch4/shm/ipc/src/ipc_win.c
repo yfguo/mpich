@@ -197,7 +197,7 @@ int MPIDI_IPC_mpi_win_create_hook(MPIR_Win * win)
                     shared_table[i].mapped_type = 2;
                     break;
 #endif
-#ifdef MPIDI_CH4_SHM_ENABLE_XPMEM
+#ifdef MPIDI_CH4_SHM_ENABLE_GPU
                 case MPIDI_IPCI_TYPE__GPU:
                     /* FIXME: remote win buffer should be mapped to each of their corresponding
                      * local GPU device. */
