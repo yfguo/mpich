@@ -274,11 +274,13 @@ int MPIDI_IPC_mpi_win_free_hook(MPIR_Win * win)
     for (int i = 0; i < shm_comm_ptr->local_size; i++) {
         if (i == shm_comm_ptr->rank)
             continue;
+#ifdef MPIDI_CH4_SHM_ENABLE_GPU
         if (shared_table[i].ipc_type == MPIDI_IPCI_TYPE__GPU) {
             MPIDI_GPU_ipc_handle_unmap(shared_table[i].shm_base_addr, shared_table[i].ipc_handle,
                                        shared_table[i].mapped_type);
             MPIR_ERR_CHECK(mpi_errno);
         }
+#endif
     }
 
     MPL_free(MPIDIG_WIN(win, shared_table));
