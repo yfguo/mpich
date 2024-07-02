@@ -520,6 +520,7 @@ Makefile.am-stamp
 /src/mpi/romio/test/fperf.f
 /src/mpi/romio/test/pfcoll_test.f
 /src/mpi/romio/test/romiotests
+/src/mpi/romio/test/parallel_run.sh
 
 # /src/mpi/romio/test-internal/
 
