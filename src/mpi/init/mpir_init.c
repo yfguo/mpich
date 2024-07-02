@@ -176,6 +176,7 @@ int MPII_Init_thread(int *argc, char ***argv, int user_required, int *provided,
     /**********************************************************************/
 
     MPL_wtime_init();
+    MPIR_tprobe_init();
 
     MPID_Thread_init(&err);
     MPIR_Assert(err == 0);
@@ -485,6 +486,8 @@ int MPII_Finalize(MPIR_Session * session_ptr)
     MPII_thread_mutex_destroy();
     MPIR_Typerep_finalize();
     MPL_atomic_store_int(&MPIR_Process.mpich_state, MPICH_MPI_STATE__UNINITIALIZED);
+
+    MPIR_tprobe_finalize();
 
   fn_exit:
     if (is_world_model) {

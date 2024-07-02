@@ -58,6 +58,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     int dst_local_rank = MPIDI_POSIX_global.local_ranks[grank];
     bool is_topo_local =
         (MPIDI_POSIX_global.local_rank_dist[dst_local_rank] == MPIDI_POSIX_DIST__LOCAL);
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_FREEQ_DEQUEUE);
     if (is_topo_local) {
         MPIDU_genq_shmem_pool_cell_alloc(transport->cell_pool, (void **) &cell,
                                          MPIR_Process.local_rank, 0 /* intra NUMA */ , buf);
@@ -65,6 +66,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
         MPIDU_genq_shmem_pool_cell_alloc(transport->cell_pool, (void **) &cell, dst_local_rank,
                                          1 /* inter NUMA */ , buf);
     }
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_FREEQ_DEQUEUE_END);
 
     /* If a cell wasn't available, let the caller know that we weren't able to send the message
      * immediately. */
@@ -114,6 +116,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
      * not reliable because the derived datatype could have zero block size which contains no
      * data. */
     if (bytes_sent) {
+        MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_COPYIN);
         if (is_topo_local) {
             MPIR_Typerep_pack(buf, count, datatype, offset, payload, available, &packed_size,
                               MPIR_TYPEREP_FLAG_NONE);
@@ -121,11 +124,14 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
             MPIR_Typerep_pack(buf, count, datatype, offset, payload, available, &packed_size,
                               MPIR_TYPEREP_FLAG_STREAM);
         }
+        MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_COPYIN_END);
         cell->payload_size += packed_size;
         *bytes_sent = packed_size;
     }
 
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_TERM_ENQUEUE);
     MPIDU_genq_shmem_queue_enqueue(transport->cell_pool, terminal, (void *) cell);
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_TERM_ENQUEUE_END);
 
   fn_exit:
     MPIR_FUNC_EXIT;

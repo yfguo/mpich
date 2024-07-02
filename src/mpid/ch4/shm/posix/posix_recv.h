@@ -57,6 +57,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_irecv(void *buf,
 
     bool need_lock;
     int vci;
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IRECV_ISSUE);
     if (*request) {
         need_lock = false;
         vci = MPIDI_Request_get_vci(*request);

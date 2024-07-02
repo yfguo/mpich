@@ -40,6 +40,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_isend(const void *buf, MPI_Aint cou
     MPIDI_POSIX_SEND_VSIS(vci_src, vci_dst);
 
     MPIDI_POSIX_THREAD_CS_ENTER_VCI(vci_src);
+    MPIR_tprobe_record(MPIR_TPROBE_EV__ISEND_ISSUE);
     bool done = false;
     if (*request == NULL && !syncflag && !MPIDI_POSIX_global.per_vci[vci_src].postponed_queue) {
         /* try eager mode to avoid heavy request.
