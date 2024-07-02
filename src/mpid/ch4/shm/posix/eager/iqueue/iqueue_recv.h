@@ -23,8 +23,10 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
     for (int vci_src = 0; vci_src < max_vcis; vci_src++) {
         transport = MPIDI_POSIX_eager_iqueue_get_transport(vci_src, vci);
 
+        MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_TERM_DEQUEUE);
         MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_terminal,
                                        (void **) &cell);
+        MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_TERM_DEQUEUE_END);
         if (cell) {
             transaction->src_local_rank = cell->from;
             transaction->src_vci = vci_src;
@@ -54,7 +56,9 @@ MPL_STATIC_INLINE_PREFIX void
 MPIDI_POSIX_eager_recv_memcpy(MPIDI_POSIX_eager_recv_transaction_t * transaction,
                               void *dst, const void *src, size_t size)
 {
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_COPYOUT);
     MPIR_Typerep_copy(dst, src, size, MPIR_TYPEREP_FLAG_NONE);
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_COPYOUT_END);
 }
 
 MPL_STATIC_INLINE_PREFIX void
@@ -68,7 +72,9 @@ MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t * transaction
     transport = MPIDI_POSIX_eager_iqueue_get_transport(transaction->src_vci, transaction->dst_vci);
     cell = (MPIDI_POSIX_eager_iqueue_cell_t *) transaction->transport.iqueue.pointer_to_cell;
 
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_FREEQ_ENQUEUE);
     MPIDU_genq_shmem_pool_cell_free(transport->cell_pool, cell);
+    MPIR_tprobe_record(MPIR_TPROBE_EV__IQUEUE_FREEQ_ENQUEUE_END);
 
     MPIR_FUNC_EXIT;
 }

@@ -217,6 +217,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_recv_done(MPI_Aint got_data_sz, MPIR_Reques
 /* TODO: if transport flag callback, synchronous copy can/should be done inside the callback */
 MPL_STATIC_INLINE_PREFIX void MPIDIG_recv_copy(void *in_data, MPIR_Request * rreq)
 {
+    MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_COPYOUT);
     MPIDIG_rreq_async_t *p = &(MPIDIG_REQUEST(rreq, req->recv_async));
     MPI_Aint in_data_sz = p->in_data_sz;
     if (in_data_sz == 0) {
@@ -276,6 +277,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_recv_copy(void *in_data, MPIR_Request * rre
         MPIR_STATUS_SET_COUNT(rreq->status, done);
     }
     /* all done */
+    MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_COPYOUT_END);
 }
 
 /* setup for asynchronous multi-segment data transfer (ref posix_progress) */
@@ -317,6 +319,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_recv_setup(MPIR_Request * rreq)
 MPL_STATIC_INLINE_PREFIX int MPIDIG_recv_copy_seg(void *payload, MPI_Aint payload_sz,
                                                   MPIR_Request * rreq)
 {
+    MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT);
     MPIDIG_rreq_async_t *p = &(MPIDIG_REQUEST(rreq, req->recv_async));
     p->in_data_sz -= payload_sz;
 
@@ -324,6 +327,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_recv_copy_seg(void *payload, MPI_Aint payloa
         /* we already detected error, don't bother copying data, just check whether
          * it's the last segment */
         return (p->in_data_sz == 0);
+        MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
     } else if (p->recv_type == MPIDIG_RECV_DATATYPE) {
         MPI_Aint actual_unpack_bytes;
         MPIR_Typerep_unpack(payload, payload_sz,
@@ -337,13 +341,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_recv_copy_seg(void *payload, MPI_Aint payloa
             rreq->status.MPI_ERROR =
                 MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, __func__, __LINE__,
                                      MPI_ERR_TYPE, "**dtypemismatch", 0);
+            MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
             return (p->in_data_sz == 0);
         } else if (p->in_data_sz == 0) {
             /* done */
             MPIR_STATUS_SET_COUNT(rreq->status, p->offset);
+            MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
             return 1;
         } else {
             /* not done */
+            MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
             return 0;
         }
     } else {
@@ -372,9 +379,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_recv_copy_seg(void *payload, MPI_Aint payloa
 
         if (p->iov_num == 0 || p->in_data_sz == 0) {
             /* all done */
+            MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
             return 1;
         } else {
             /* not done */
+            MPIR_tprobe_record(MPIR_TPROBE_EV__MPIDIG_SEG_COPYOUT_END);
             return 0;
         }
     }

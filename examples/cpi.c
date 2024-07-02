@@ -4,6 +4,7 @@
  */
 
 #include "mpi.h"
+#include "mpir_tprobe.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -46,7 +47,10 @@ int main(int argc, char *argv[])
     }
     mypi = h * sum;
 
+    MPIR_tprobe_sync();
+    MPIR_tprobe_start(MPIR_TPROBE_ALL);
     MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPIR_tprobe_stop();
 
     if (myid == 0) {
         endwtime = MPI_Wtime();

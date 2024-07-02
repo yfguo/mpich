@@ -99,6 +99,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int vci, int *made_progre
     MPIR_FUNC_ENTER;
 
     if (MPIDI_POSIX_global.per_vci[vci].postponed_queue) {
+        MPIR_tprobe_record(MPIR_TPROBE_EV__HANDLE_POSTPONED);
         *made_progress = 1;
         /* Drain postponed queue */
         curr_sreq_hdr = MPIDI_POSIX_global.per_vci[vci].postponed_queue;
@@ -142,6 +143,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
 
     MPIR_Assert(vci < MPIDI_POSIX_global.num_vcis);
 
+    MPIR_tprobe_record(MPIR_TPROBE_EV__PROGRESS_START);
     mpi_errno = MPIDI_POSIX_progress_recv(vci, made_progress);
     MPIR_ERR_CHECK(mpi_errno);
 
