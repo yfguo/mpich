@@ -9,5 +9,6 @@
 #include "quicq_noinline.h"
 #include "quicq_send.h"
 #include "quicq_recv.h"
+#include "quicq_progress.h"
 
 #endif /* POSIX_EAGER_QUICQ_DIRECT_H_INCLUDED */
