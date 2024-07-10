@@ -59,6 +59,11 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
     return MPIDI_POSIX_eager_func->buf_limit();
 }
 
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progress)
+{
+    return MPIDI_POSIX_eager_func->progress(vci, made_progress);
+}
+
 #endif /* POSIX_EAGER_DISABLE_INLINES  */
 
 #else /* POSIX_EAGER_INLINE */
