@@ -3,7 +3,7 @@
 ##     See COPYRIGHT in top-level directory
 ##
 
-if BUILD_CH4_SHM_POSIX_EAGER_IQUEUE
+if BUILD_CH4_SHM_POSIX_EAGER_QUICQ
 
 noinst_HEADERS += src/mpid/ch4/shm/posix/eager/quicq/quicq_send.h \
                   src/mpid/ch4/shm/posix/eager/quicq/quicq_recv.h \
