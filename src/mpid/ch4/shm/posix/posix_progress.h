@@ -144,6 +144,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
 
     MPIR_Assert(vci < MPIDI_POSIX_global.num_vcis);
 
+    mpi_errno = MPIDI_POSIX_eager_progress(vci, made_progress);
+    MPIR_ERR_CHECK(mpi_errno);
+
     mpi_errno = MPIDI_POSIX_progress_recv(vci, made_progress);
     MPIR_ERR_CHECK(mpi_errno);
 
