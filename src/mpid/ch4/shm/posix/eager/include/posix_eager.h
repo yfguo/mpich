@@ -34,6 +34,8 @@ typedef void (*MPIDI_POSIX_eager_recv_completed_hook_t) (int grank);
 typedef size_t(*MPIDI_POSIX_eager_payload_limit_t) (void);
 typedef size_t(*MPIDI_POSIX_eager_buf_limit_t) (void);
 
+typedef int (*MPIDI_POSIX_eager_progress_t) (int vci, int *made_progress);
+
 typedef struct {
     MPIDI_POSIX_eager_init_t init;
     MPIDI_POSIX_eager_post_init_t post_init;
@@ -50,6 +52,8 @@ typedef struct {
 
     MPIDI_POSIX_eager_payload_limit_t payload_limit;
     MPIDI_POSIX_eager_buf_limit_t buf_limit;
+
+    MPIDI_POSIX_eager_progress_t progress;
 } MPIDI_POSIX_eager_funcs_t;
 
 extern MPIDI_POSIX_eager_funcs_t *MPIDI_POSIX_eager_funcs[];
@@ -86,5 +90,8 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_completed_hook(int grank)
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void) MPL_STATIC_INLINE_SUFFIX;
+
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progress)
+    MPL_STATIC_INLINE_SUFFIX;
 
 #endif /* POSIX_EAGER_H_INCLUDED */
