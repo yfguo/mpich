@@ -13,6 +13,10 @@
 #define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR 0
 #define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA 1
 
+#define MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE (128)
+#define MPIDI_POSIX_EAGER_QUICQ_NUM_CELLS (8)
+#define MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK (MPIDI_POSIX_EAGER_QUICQ_NUM_CELLS - 1)
+
 typedef struct MPIDI_POSIX_eager_quicq_cell MPIDI_POSIX_eager_quicq_cell_t;
 
 /* Each cell contains some data being communicated from one process to another. */
@@ -24,13 +28,33 @@ struct MPIDI_POSIX_eager_quicq_cell {
                                          * an active message header and this will point to it. */
 };
 
+typedef struct MPIDI_POSIX_eager_quicq_cntr {
+    union {
+        MPL_atomic_uint32_t a;
+        char pad[MPL_CACHELINE_SIZE];
+    } seq;
+    union {
+        MPL_atomic_uint32_t a;
+        char pad[MPL_CACHELINE_SIZE];
+    } ack;
+} MPIDI_POSIX_eager_quicq_cntr_t;
+
+typedef struct MPIDI_POSIX_eager_quicq_terminal {
+    void *cell_base;
+    MPIDI_POSIX_eager_quicq_cntr_t *cntr;
+    int last_seq;
+    int last_ack;
+} MPIDI_POSIX_eager_quicq_terminal_t;
+
 typedef struct MPIDI_POSIX_eager_quicq_transport {
-    int num_cells;              /* The number of cells allocated to each terminal in this transport */
-    int size_of_cell;           /* The size of each of the cells in this transport */
-    MPIDU_genq_shmem_queue_u *terminals;        /* The list of all the terminals that
-                                                 * describe each of the cells */
-    MPIDU_genq_shmem_queue_t my_terminal;
-    MPIDU_genq_shmem_pool_t cell_pool;
+    int size_of_cell;
+    int cell_alloc_size;
+    int num_cells_per_queue;
+    int num_queues;
+    void *shm_base;
+    void **cell_bases;
+    MPIDI_POSIX_eager_quicq_terminal_t *send_terminals;
+    MPIDI_POSIX_eager_quicq_terminal_t *recv_terminals;
 } MPIDI_POSIX_eager_quicq_transport_t;
 
 typedef struct MPIDI_POSIX_eager_quicq_global {
