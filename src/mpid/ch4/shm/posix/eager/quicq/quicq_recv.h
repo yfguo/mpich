@@ -13,6 +13,7 @@ MPL_STATIC_INLINE_PREFIX int
 MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * transaction)
 {
     MPIDI_POSIX_eager_quicq_transport_t *transport;
+    MPIDI_POSIX_eager_quicq_terminal_t *terminal;
     MPIDI_POSIX_eager_quicq_cell_t *cell = NULL;
     int ret = MPIDI_POSIX_NOK;
 
@@ -23,9 +24,20 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
     for (int vci_src = 0; vci_src < max_vcis; vci_src++) {
         transport = MPIDI_POSIX_eager_quicq_get_transport(vci_src, vci);
 
-        MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_terminal,
-                                       (void **) &cell);
-        if (cell) {
+        for (int src_local_rank = 0; src_local_rank < MPIR_Process.local_size;
+             src_local_rank++) {
+            if (src_local_rank == MPIR_Process.local_rank) {
+                continue;
+            }
+            terminal = &transport->recv_terminals[src_local_rank];
+            if (terminal->last_ack == terminal->last_seq) {
+                continue;
+            }
+
+            int cell_idx = terminal->last_ack & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+            cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
+            terminal->last_ack++;
+
             transaction->src_local_rank = cell->from;
             transaction->src_vci = vci_src;
             transaction->dst_vci = vci;
@@ -62,13 +74,14 @@ MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t * transaction
 {
     MPIDI_POSIX_eager_quicq_cell_t *cell;
     MPIDI_POSIX_eager_quicq_transport_t *transport;
+    MPIDI_POSIX_eager_quicq_terminal_t *terminal;
 
     MPIR_FUNC_ENTER;
 
     transport = MPIDI_POSIX_eager_quicq_get_transport(transaction->src_vci, transaction->dst_vci);
-    cell = (MPIDI_POSIX_eager_quicq_cell_t *) transaction->transport.quicq.pointer_to_cell;
+    terminal = &transport->recv_terminals[transaction->src_local_rank];
 
-    MPIDU_genq_shmem_pool_cell_free(transport->cell_pool, cell);
+    MPL_atomic_relaxed_store_uint32(&terminal->cntr->ack.a, terminal->last_ack);
 
     MPIR_FUNC_EXIT;
 }

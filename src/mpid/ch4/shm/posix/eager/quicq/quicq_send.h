@@ -11,12 +11,12 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE - sizeof(MPIDI_POSIX_eager_quicq_cell_t);
+    return MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE - sizeof(MPIDI_POSIX_eager_quicq_cell_t);
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
+    return MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE;
 }
 
 /* This function attempts to send the next chunk of a message via the queue. If no cells are
@@ -41,7 +41,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
 {
     MPIDI_POSIX_eager_quicq_transport_t *transport;
     MPIDI_POSIX_eager_quicq_cell_t *cell;
-    MPIDU_genq_shmem_queue_t terminal;
+    MPIDI_POSIX_eager_quicq_terminal_t *terminal;
     size_t capacity, available;
     char *payload;
     int ret = MPIDI_POSIX_OK;
@@ -58,23 +58,20 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     int dst_local_rank = MPIDI_POSIX_global.local_ranks[grank];
     bool is_topo_local =
         (MPIDI_POSIX_global.local_rank_dist[dst_local_rank] == MPIDI_POSIX_DIST__LOCAL);
-    if (is_topo_local) {
-        MPIDU_genq_shmem_pool_cell_alloc(transport->cell_pool, (void **) &cell,
-                                         MPIR_Process.local_rank, 0 /* intra NUMA */ , buf);
-    } else {
-        MPIDU_genq_shmem_pool_cell_alloc(transport->cell_pool, (void **) &cell, dst_local_rank,
-                                         1 /* inter NUMA */ , buf);
-    }
+
+    /* Find the correct queue for this rank pair. */
+    terminal = &transport->send_terminals[dst_local_rank];
 
     /* If a cell wasn't available, let the caller know that we weren't able to send the message
      * immediately. */
-    if (unlikely(!cell)) {
+    if (unlikely(terminal->last_seq - terminal->last_ack >= transport->num_cells_per_queue)) {
         ret = MPIDI_POSIX_NOK;
         goto fn_exit;
     }
 
-    /* Find the correct queue for this rank pair. */
-    terminal = &transport->terminals[MPIDI_POSIX_global.local_ranks[grank]];
+    int cell_idx = terminal->last_seq & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+    cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
+    terminal->last_seq++;
 
     /* Get the memory allocated to be used for the message transportation. */
     payload = MPIDI_POSIX_EAGER_QUICQ_CELL_PAYLOAD(cell);
@@ -84,7 +81,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
 
     available = capacity;
 
-    cell->from = MPIDI_POSIX_global.my_local_rank;
+    cell->from = MPIR_Process.local_rank;
 
     /* If this is the beginning of the message, mark it as the head. Otherwise it will be the
      * tail. */
@@ -125,7 +122,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
         *bytes_sent = packed_size;
     }
 
-    MPIDU_genq_shmem_queue_enqueue(transport->cell_pool, terminal, (void *) cell);
+    MPL_atomic_relaxed_store_uint32(&terminal->cntr->seq.a, terminal->last_seq);
 
   fn_exit:
     MPIR_FUNC_EXIT;
