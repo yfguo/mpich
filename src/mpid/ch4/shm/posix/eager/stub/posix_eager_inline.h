@@ -9,5 +9,6 @@
 #include "stub_noinline.h"
 #include "stub_send.h"
 #include "stub_recv.h"
+#include "stub_progress.h"
 
 #endif /* POSIX_EAGER_STUB_DIRECT_H_INCLUDED */
