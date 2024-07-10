@@ -27,7 +27,9 @@ MPIDI_POSIX_eager_funcs_t MPIDI_POSIX_eager_iqueue_funcs = {
     MPIDI_POSIX_eager_recv_completed_hook,
 
     MPIDI_POSIX_eager_payload_limit,
-    MPIDI_POSIX_eager_buf_limit
+    MPIDI_POSIX_eager_buf_limit,
+
+    MPIDI_POSIX_eager_progress
 };
 
 #endif /* POSIX_EAGER_INLINE */
