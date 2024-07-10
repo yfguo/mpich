@@ -9,5 +9,6 @@
 #include "iqueue_noinline.h"
 #include "iqueue_send.h"
 #include "iqueue_recv.h"
+#include "iqueue_progress.h"
 
 #endif /* POSIX_EAGER_IQUEUE_DIRECT_H_INCLUDED */
