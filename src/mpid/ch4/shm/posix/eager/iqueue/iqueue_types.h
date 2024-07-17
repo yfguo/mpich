@@ -22,6 +22,12 @@ struct MPIDI_POSIX_eager_iqueue_cell {
     uint32_t payload_size;      /* Size of the message in the cell */
     MPIDI_POSIX_am_header_t am_header;  /* If this cell is the beginning of a message, it will have
                                          * an active message header and this will point to it. */
+    uint8_t pad[MPL_CACHELINE_SIZE - sizeof(struct {
+                                            uint16_t type;
+                                            uint16_t from;
+                                            uint32_t payload_size;
+                                            MPIDI_POSIX_am_header_t am_header;
+                                            })];
 };
 
 typedef struct MPIDI_POSIX_eager_iqueue_transport {

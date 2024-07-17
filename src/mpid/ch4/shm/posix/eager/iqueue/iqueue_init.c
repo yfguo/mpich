@@ -91,6 +91,19 @@ int MPIDI_POSIX_iqueue_init(int rank, int size)
 
     MPIR_FUNC_ENTER;
 
+    MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_POSIX_eager_iqueue_cell_t) == MPL_CACHELINE_SIZE);
+
+    if (MPIR_CVAR_DEBUG_SUMMARY > 0) {
+        if (MPIR_Process.rank == 0) {
+            fprintf(stdout, "====== POSIX iqueue ======\n");
+            fprintf(stdout, "sizeof(MPIDI_POSIX_eager_iqueue_cell_t): %lu\n",
+                    sizeof(MPIDI_POSIX_eager_iqueue_cell_t));
+            fprintf(stdout, "MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE: %d\n",
+                    MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE);
+            fprintf(stdout, "==========================\n");
+        }
+    }
+
     /* ensure max alignment for payload */
     MPIR_Assert((MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE & (MAX_ALIGNMENT - 1)) == 0);
     MPIR_Assert((sizeof(MPIDI_POSIX_eager_iqueue_cell_t) & (MAX_ALIGNMENT - 1)) == 0);
