@@ -13,8 +13,8 @@ typedef void *MPIDU_genq_shmem_pool_t;
 typedef void *MPIDU_genq_shmem_queue_t;
 
 typedef struct MPIDU_genqi_shmem_cell_header {
-    uintptr_t handle;
-    int block_idx;
+    uintptr_t handle MPL_ATTR_ALIGNED(sizeof(uint64_t));
+    int block_idx MPL_ATTR_ALIGNED(sizeof(uint64_t));
     union {
         struct {
             uintptr_t next;
@@ -26,6 +26,7 @@ typedef struct MPIDU_genqi_shmem_cell_header {
         struct {
             MPL_atomic_ptr_t next_m;
         } nem_queue;
+        uint8_t pad[MPL_CACHELINE_SIZE - 2 * sizeof(uint64_t)];
     } u;
 } MPIDU_genqi_shmem_cell_header_s;
 

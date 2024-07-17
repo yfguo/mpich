@@ -43,9 +43,6 @@ cvars:
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
-#define RESIZE_TO_MAX_ALIGN(x) \
-    ((((x) / MAX_ALIGNMENT) + !!((x) % MAX_ALIGNMENT)) * MAX_ALIGNMENT)
-
 static int cell_block_alloc(MPIDU_genqi_shmem_pool_s * pool, int rank);
 static int cell_block_alloc(MPIDU_genqi_shmem_pool_s * pool, int rank)
 {
@@ -106,10 +103,12 @@ int MPIDU_genq_shmem_pool_create(uintptr_t cell_size, uintptr_t cells_per_free_q
 
     MPIR_FUNC_ENTER;
 
+    MPL_COMPILE_TIME_ASSERT(sizeof(MPIDU_genqi_shmem_cell_header_s) == MPL_CACHELINE_SIZE);
+
     pool_obj = MPL_malloc(sizeof(MPIDU_genqi_shmem_pool_s), MPL_MEM_OTHER);
 
     pool_obj->cell_size = cell_size;
-    aligned_cell_size = RESIZE_TO_MAX_ALIGN(cell_size);
+    aligned_cell_size = MPL_ROUND_UP_ALIGN(cell_size, MPL_CACHELINE_SIZE);
     pool_obj->cell_alloc_size = sizeof(MPIDU_genqi_shmem_cell_header_s) + aligned_cell_size;
     /* cells_per_proc */
     pool_obj->cells_per_free_queue = cells_per_free_queue;
