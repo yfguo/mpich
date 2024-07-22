@@ -232,6 +232,14 @@ typedef struct {
 
 #include "string.h"
 
+static inline void MPL_Memcpy(void *dest, const void *src, size_t n)
+{
+    asm volatile ("rep movsb":"=D" (dest), "=S"(src), "=c"(n)
+                  :"0"(dest), "1"(src), "2"(n)
+                  :"memory");
+
+}
+
 #ifdef HAVE_MM256_STREAM_SI256
 #include <immintrin.h>
 
@@ -393,7 +401,7 @@ static inline void MPL_Memcpy_stream(void *dest, const void *src, size_t n)
 
 static inline void MPL_Memcpy_stream(void *dest, const void *src, size_t n)
 {
-    memcpy(dest, src, n);
+    MPL_Memcpy(dest, src, n);
 }
 
 #endif /* HAVE_SSE2 */

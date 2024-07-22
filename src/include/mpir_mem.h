@@ -81,7 +81,7 @@ extern "C" {
 #define MPIR_Memcpy(dst, src, len)              \
     do {                                        \
         CHECK_MEMCPY((dst),(src),(len));        \
-        memcpy((dst), (src), (len));            \
+        MPL_Memcpy((dst), (src), (len));            \
     } while (0)
 
 #define MPIR_Memcpy_stream(dst, src, len)       \
