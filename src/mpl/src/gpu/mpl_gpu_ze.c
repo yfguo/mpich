@@ -45,7 +45,7 @@ static int gpu_initialized = 0;
 static uint32_t device_count;   /* Counts all local devices, does not include subdevices */
 static uint32_t local_ze_device_count;  /* Counts all local devices and subdevices */
 static uint32_t global_ze_device_count; /* Counts all global devices and subdevices */
-static int max_dev_id;  /* Does not include subdevices */
+static int max_dev_id;          /* Does not include subdevices */
 static int max_subdev_id;
 static char **device_list = NULL;
 static int *engine_conversion = NULL;
