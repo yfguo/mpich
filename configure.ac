@@ -963,16 +963,26 @@ if test "$enable_fast_avx_instr" = "yes" ; then
         AC_CACHE_CHECK([whether _mm256_stream_si256 is supported], pac_cv_found__mm256_stream_si256,[
                         AC_RUN_IFELSE([AC_LANG_SOURCE([[
                                        #include <immintrin.h>
+                                       #include <stdlib.h>
 
                                        int main(int argc, char **argv) {
-                                           char source[1024], dest[1024];
-                                           for (int i = 0; i < 1024; i++) source[i] = 'a';
+                                           int ret = 0;
+                                           char *source, *dest;
+                                           posix_memalign((void **) &source, 64, 64);
+                                           posix_memalign((void **) &dest, 64, 64);
+                                           for (int i = 0; i < 64; i++) source[i] = 'a';
 
                                            __m256i ymm0 = _mm256_loadu_si256((__m256i const *) source);
                                            _mm256_stream_si256((__m256i *) dest, ymm0);
+                                           _mm_sfence();
 
-                                           if (dest[0] == source[0]) return 0;
-                                           else return 1;
+                                           if (dest[0] == source[0]) ret = 0;
+                                           else ret = 1;
+
+                                           free(source);
+                                           free(dest);
+
+                                           return ret;
                                        }
                                        ]])], pac_cv_found__mm256_stream_si256="yes",
                                        pac_cv_found__mm256_stream_si256="no",
@@ -992,24 +1002,34 @@ if test "$enable_fast_sse_instr" = "yes" ; then
                    pac_cv_found_avx=no,pac_cv_found_sse2=yes)
     if test "$pac_cv_found_sse2" = "yes" ; then
         PAC_APPEND_FLAG([-msse2],[CFLAGS])
-        AC_MSG_CHECKING([for SSE2 support])
+
         AC_CACHE_CHECK([whether SSE2 stream store is supported], pac_cv_found_sse2_stream_store,[
                         AC_RUN_IFELSE([AC_LANG_SOURCE([[
                                        #include <immintrin.h>
+                                       #include <stdlib.h>
 
                                        int main(int argc, char **argv) {
-                                       char source[1024], dest[1024];
-                                       for (int i = 0; i < 1024; i++) source[i] = 'a';
+                                           int ret = 0;
+                                           char *source, *dest;
+                                           posix_memalign((void **) &source, 64, 64);
+                                           posix_memalign((void **) &dest, 64, 64);
+                                           for (int i = 0; i < 64; i++) source[i] = 'a';
 
                                            __m128i xmm0 = _mm_loadu_si128((__m128i const *) source);
                                            _mm_stream_si128((__m128i *) dest, xmm0);
+                                           _mm_sfence();
 
-                                           if (dest[0] == source[0]) return 0;
-                                           else return 1;
-                                           }
-                                           ]])], pac_cv_found_sse2_stream_store="yes",
-                                           pac_cv_found_sse2_stream_store"no",
-                                           pac_cv_found_sse2_stream_store="unknown")
+                                           if (dest[0] == source[0]) ret = 0;
+                                           else ret = 1;
+
+                                           free(source);
+                                           free(dest);
+
+                                           return ret;
+                                       }
+                                       ]])], pac_cv_found_sse2_stream_store="yes",
+                                       pac_cv_found_sse2_stream_store"no",
+                                       pac_cv_found_sse2_stream_store="unknown")
                         ])
     fi
     if test "$pac_cv_found_sse2_stream_store" = "yes" ; then
