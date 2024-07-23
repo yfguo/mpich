@@ -47,6 +47,8 @@ fi
 AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_COMMANDS([prefix-config],[perl $srcdir/confdb/cmd_prefix_config_h.pl MPL include/config.h include/mplconfig.h])
 
+m4_include([confdb/aclocal_arch.m4])
+
 # Non-verbose make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
@@ -151,13 +153,13 @@ AC_ARG_ENABLE(fast,
         alwaysinline   - Force compiler to always inline functions with MPL_STATIC_INLINE_PREFIX|SUFFIX
         all|yes  - Same as "alwaysinline"
         none     - Disable alwaysinline (default)
+
 ],,enable_fast=none)
 
 # enable-fast
 # only alwaysinline option is valid but still need break down multiple options
 # transferred from MPICH separated by commas
 enable_fast_alwaysinline=no
-enable_fast_avx_instr=no
 save_IFS="$IFS"
 IFS=","
 for option in $enable_fast ; do
@@ -168,9 +170,6 @@ for option in $enable_fast ; do
         all|yes)
         enable_fast_alwaysinline=yes
         ;;
-        avx)
-        enable_fast_avx_instr=yes
-        ;;
         *) # do not change default value (no) for other fast options
         ;;
     esac
@@ -180,6 +179,13 @@ IFS="$save_IFS"
 if test "$enable_fast_alwaysinline" = "yes"; then
     AC_DEFINE(ENABLE_ALWAYS_INLINE,1,[Define if force compiler to always inline functions with MPL_STATIC_INLINE_PREFIX|SUFFIX])
 fi
+
+for var in $(set | grep '^MPICH_FAST_' | cut -d= -f1); do
+    key="${var#MPICH_FAST_}"
+    value=$(eval echo \$$var)
+    echo "### ${key} ${value}"
+    AC_DEFINE_UNQUOTED([$key], [$value], [Imported from parent configure])
+done
 
 #######################################################################
 # valgrind support
@@ -1131,65 +1137,6 @@ if test "X${pac_have_ze}" = "Xyes" ; then
     AC_CHECK_LIB(dl, dlopen, [], AC_MSG_ERROR([dlopen not found.  MPL ZE support requires libdl.]))
 fi
 AM_CONDITIONAL([MPL_HAVE_ZE],[test "X${pac_have_ze}" = "Xyes"])
-
-if test "$enable_fast_avx_instr" = "yes" ; then
-    AC_CACHE_CHECK([whether -mavx512f is supported], pac_cv_found_avx512f,
-                   [PAC_C_CHECK_COMPILER_OPTION([-mavx512f],pac_cv_found_avx512f=yes,pac_cv_found_avx512f=no)],
-                   pac_cv_found_avx512f=no,pac_cv_found_avx512f=yes)
-    if test "$pac_cv_found_avx512f" = "yes" ; then
-        PAC_APPEND_FLAG([-mavx512f],[CFLAGS])
-
-        AC_CACHE_CHECK([whether _mm512_storeu_si512 is supported], pac_cv_found___mm512_storeu_si512,[
-                        AC_RUN_IFELSE([AC_LANG_SOURCE([[
-                                       #include <x86intrin.h>
-
-                                       int main(int argc, char **argv) {
-                                           char source[1024], dest[1024];
-                                           for (int i = 0; i < 1024; i++) source[i] = 'a';
-
-                                           _mm512_storeu_si512((__m512i *) dest, _mm512_loadu_si512((__m512i const *) source));
-
-                                           if (dest[0] == source[0]) return 0;
-                                           else return 1;
-                                       }
-                                       ]])], pac_cv_found___mm512_storeu_si512="yes",
-                                       pac_cv_found___mm512_storeu_si512="no",
-                                       pac_cv_found___mm512_storeu_si512="unknown")
-                        ])
-    fi
-    if test "$pac_cv_found___mm512_storeu_si512" = "yes" ; then
-        AC_DEFINE(HAVE_MM512_STOREU_SI512,1,[Define if avx512f is available])
-    fi
-
-    AC_CACHE_CHECK([whether -mavx is supported], pac_cv_found_avx,
-                   [PAC_C_CHECK_COMPILER_OPTION([-mavx],pac_cv_found_avx=yes,pac_cv_found_avx=no)],
-                   pac_cv_found_avx=no,pac_cv_found_avx=yes)
-    if test "$pac_cv_found_avx" = "yes" ; then
-        PAC_APPEND_FLAG([-mavx],[CFLAGS])
-
-        AC_CACHE_CHECK([whether _mm256_storeu_si256 is supported], pac_cv_found___mm256_storeu_si256,[
-                        AC_RUN_IFELSE([AC_LANG_SOURCE([[
-                                       #include <x86intrin.h>
-
-                                       int main(int argc, char **argv) {
-                                           char source[1024], dest[1024];
-                                           for (int i = 0; i < 1024; i++) source[i] = 'a';
-
-                                           _mm256_storeu_si256((__m256i *) dest, _mm256_loadu_si256((__m256i const *) source));
-
-                                           if (dest[0] == source[0]) return 0;
-                                           else return 1;
-                                       }
-                                       ]])], pac_cv_found___mm256_storeu_si256="yes",
-                                       pac_cv_found___mm256_storeu_si256="no",
-                                       pac_cv_found___mm256_storeu_si256="unknown")
-                        ])
-    fi
-    if test "$pac_cv_found___mm256_storeu_si256" = "yes" ; then
-        AC_DEFINE(HAVE_MM256_STOREU_SI256,1,[Define if avx is available])
-    fi
-fi
-
 
 # Check HIP availability
 if test "$have_gpu" = "no" ; then

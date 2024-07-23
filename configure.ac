@@ -445,6 +445,7 @@ AC_ARG_ENABLE(fast,
         alwaysinline - Force compiler to always inline performance critical routines
         sse      - Use SSE2-based copy routines
         avx      - Use AVX256-based copy routines
+        avx512   - Use AVX512-based copy routines
         all|yes  - "O2", "ndebug", and "alwaysinline" are enabled
         none     - None of above options, i.e. --disable-fast
 ],,enable_fast=O2,sse)
@@ -908,6 +909,9 @@ for option in $enable_fast ; do
         avx)
         enable_fast_avx_instr=yes
         ;;
+        avx512)
+        enable_fast_avx512_instr=yes
+        ;;
         all|yes)
         enable_fast_ndebug=yes
         enable_fast_opts=O2
@@ -960,6 +964,24 @@ if test "$enable_fast_avx_instr" = "yes" ; then
     if test "$pac_cv_found_avx" = "yes" ; then
         PAC_APPEND_FLAG([-mavx],[CFLAGS])
 
+        AC_CACHE_CHECK([whether _mm256_storeu_si256 is supported], pac_cv_found__mm256_storeu_si256,[
+                        AC_RUN_IFELSE([AC_LANG_SOURCE([[
+                                       #include <x86intrin.h>
+
+                                       int main(int argc, char **argv) {
+                                           char source[1024], dest[1024];
+                                           for (int i = 0; i < 1024; i++) source[i] = 'a';
+
+                                           _mm256_storeu_si256((__m256i *) dest, _mm256_loadu_si256((__m256i const *) source));
+
+                                           if (dest[0] == source[0]) return 0;
+                                           else return 1;
+                                       }
+                                       ]])], pac_cv_found__mm256_storeu_si256="yes",
+                                       pac_cv_found__mm256_storeu_si256="no",
+                                       pac_cv_found__mm256_storeu_si256="unknown")
+                        ])
+
         AC_CACHE_CHECK([whether _mm256_stream_si256 is supported], pac_cv_found__mm256_stream_si256,[
                         AC_RUN_IFELSE([AC_LANG_SOURCE([[
                                        #include <immintrin.h>
@@ -989,8 +1011,13 @@ if test "$enable_fast_avx_instr" = "yes" ; then
                                        pac_cv_found__mm256_stream_si256="unknown")
                         ])
     fi
+    if test "$pac_cv_found__mm256_storeu_si256" = "yes" ; then
+        AC_DEFINE(HAVE_MM256_STOREU_SI256,1,[Define if avx256 store is available])
+        export MPICH_FAST_HAVE_MM256_STOREU_SI256=1
+    fi
     if test "$pac_cv_found__mm256_stream_si256" = "yes" ; then
-        AC_DEFINE(HAVE_MM256_STREAM_SI256,1,[Define if 256 bit streaming memcpy is available])
+        AC_DEFINE(HAVE_MM256_STREAM_SI256,1,[Define if avx256 stream store is available])
+        export MPICH_FAST_HAVE_MM256_STREAM_SI256=1
         # no need for SSE2 version if AVX is supported
         enable_fast_sse_instr=no
     fi
@@ -999,11 +1026,11 @@ fi
 if test "$enable_fast_sse_instr" = "yes" ; then
     AC_CACHE_CHECK([whether -msse2 is supported], pac_cv_found_sse2,
                    [PAC_C_CHECK_COMPILER_OPTION([-msse2],pac_cv_found_sse2=yes,pac_cv_found_sse2=no)],
-                   pac_cv_found_avx=no,pac_cv_found_sse2=yes)
+                   pac_cv_found_sse2=no,pac_cv_found_sse2=yes)
     if test "$pac_cv_found_sse2" = "yes" ; then
         PAC_APPEND_FLAG([-msse2],[CFLAGS])
 
-        AC_CACHE_CHECK([whether SSE2 stream store is supported], pac_cv_found_sse2_stream_store,[
+        AC_CACHE_CHECK([whether SSE2 stream store is supported], pac_cv_found__mm_stream_si128,[
                         AC_RUN_IFELSE([AC_LANG_SOURCE([[
                                        #include <immintrin.h>
                                        #include <stdlib.h>
@@ -1027,13 +1054,45 @@ if test "$enable_fast_sse_instr" = "yes" ; then
 
                                            return ret;
                                        }
-                                       ]])], pac_cv_found_sse2_stream_store="yes",
-                                       pac_cv_found_sse2_stream_store"no",
-                                       pac_cv_found_sse2_stream_store="unknown")
+                                       ]])], pac_cv_found__mm_stream_si128="yes",
+                                       pac_cv_found__mm_stream_si128"no",
+                                       pac_cv_found__mm_stream_si128="unknown")
                         ])
     fi
-    if test "$pac_cv_found_sse2_stream_store" = "yes" ; then
-        AC_DEFINE(HAVE_SSE2,1,[Define if SSE2 128 bit streaming memcpy is available])
+    if test "$pac_cv_found__mm_stream_si128" = "yes" ; then
+        AC_DEFINE(HAVE_MM_STREAM_SI128,1,[Define if SSE2 stream store is available])
+        export MPICH_FAST_HAVE_MM_STREAM_SI128=1
+    fi
+fi
+
+if test "$enable_fast_avx512_instr" = "yes" ; then
+    AC_CACHE_CHECK([whether -mavx512f is supported], pac_cv_found_avx512f,
+                   [PAC_C_CHECK_COMPILER_OPTION([-mavx512f],pac_cv_found_avx512f=yes,pac_cv_found_avx512f=no)],
+                   pac_cv_found_avx512f=no,pac_cv_found_avx512f=yes)
+    if test "$pac_cv_found_avx512f" = "yes" ; then
+        PAC_APPEND_FLAG([-mavx512f],[CFLAGS])
+
+        AC_CACHE_CHECK([whether _mm512_storeu_si512 is supported], pac_cv_found__mm512_storeu_si512,[
+                        AC_RUN_IFELSE([AC_LANG_SOURCE([[
+                                       #include <x86intrin.h>
+
+                                       int main(int argc, char **argv) {
+                                           char source[1024], dest[1024];
+                                           for (int i = 0; i < 1024; i++) source[i] = 'a';
+
+                                           _mm512_storeu_si512((__m512i *) dest, _mm512_loadu_si512((__m512i const *) source));
+
+                                           if (dest[0] == source[0]) return 0;
+                                           else return 1;
+                                       }
+                                       ]])], pac_cv_found__mm512_storeu_si512="yes",
+                                       pac_cv_found__mm512_storeu_si512="no",
+                                       pac_cv_found__mm512_storeu_si512="unknown")
+                        ])
+    fi
+    if test "$pac_cv_found__mm512_storeu_si512" = "yes" ; then
+        AC_DEFINE(HAVE_MM512_STOREU_SI512,1,[Define if avx512 store is available])
+        export MPICH_FAST_HAVE_MM512_STOREU_SI512=1
     fi
 fi
 
