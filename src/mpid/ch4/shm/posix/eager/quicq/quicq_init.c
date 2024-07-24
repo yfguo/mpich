@@ -14,7 +14,7 @@ cvars:
     - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS
       category    : CH4
       type        : int
-      default     : 64
+      default     : 8
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -24,7 +24,7 @@ cvars:
     - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE
       category    : CH4
       type        : int
-      default     : 16384
+      default     : 256
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -46,8 +46,8 @@ static int init_transport(int vci_src, int vci_dst)
     MPIDI_POSIX_eager_quicq_transport_t *transport;
     transport = MPIDI_POSIX_eager_quicq_get_transport(vci_src, vci_dst);
 
-    transport->num_cells_per_queue = MPIDI_POSIX_EAGER_QUICQ_NUM_CELLS;
-    transport->size_of_cell = MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE;
+    transport->num_cells_per_queue = MPL_pof2(MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS);
+    transport->size_of_cell = MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
 
     transport->cell_alloc_size = transport->size_of_cell + sizeof(MPIDI_POSIX_eager_quicq_cell_t);
     transport->cell_alloc_size = MPL_ROUND_UP_ALIGN(transport->cell_alloc_size, MPL_CACHELINE_SIZE);
@@ -112,6 +112,15 @@ static int init_transport(int vci_src, int vci_dst)
         transport->recv_terminals[remote_rank].cntr = q_base;
         transport->recv_terminals[remote_rank].last_seq = 0;
         transport->recv_terminals[remote_rank].last_ack = 0;
+    }
+
+    if (MPIR_CVAR_DEBUG_SUMMARY && MPIR_Process.rank == 0) {
+        fprintf(stdout, "==== QUICQ sizes and limits ====\n");
+        fprintf(stdout, "sizeof(MPIDI_POSIX_eager_quicq_cell_t): %lu\n",
+                sizeof(MPIDI_POSIX_eager_quicq_cell_t));
+        fprintf(stdout, "cell_alloc_size: %d\n", transport->cell_alloc_size);
+        fprintf(stdout, "num_cells_per_queue: %d\n", transport->num_cells_per_queue);
+        fprintf(stdout, "queue_obj_size: %d\n", queue_obj_size);
     }
 
   fn_exit:
