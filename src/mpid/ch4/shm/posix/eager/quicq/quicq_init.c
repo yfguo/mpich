@@ -49,7 +49,8 @@ static int init_transport(int vci_src, int vci_dst)
     transport->num_cells_per_queue = MPL_pof2(MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS);
     transport->size_of_cell = MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
 
-    transport->cell_alloc_size = transport->size_of_cell + sizeof(MPIDI_POSIX_eager_quicq_cell_t);
+    transport->cell_alloc_size = transport->size_of_cell
+        + MPL_ROUND_UP_ALIGN(sizeof(MPIDI_POSIX_eager_quicq_cell_t), MPL_CACHELINE_SIZE);
     transport->cell_alloc_size = MPL_ROUND_UP_ALIGN(transport->cell_alloc_size, MPL_CACHELINE_SIZE);
 
     /* to and from each other processes */
