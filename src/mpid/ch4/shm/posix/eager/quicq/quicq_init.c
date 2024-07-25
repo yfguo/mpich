@@ -31,6 +31,26 @@ cvars:
       description : >-
         Size of each cell.
 
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_EXTBUFS
+      category    : CH4
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of cells used for the depth of the quicq.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_EXTBUF_SIZE
+      category    : CH4
+      type        : int
+      default     : 16384
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Size of each cell.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -121,12 +141,25 @@ static int init_transport(int vci_src, int vci_dst)
                 MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS);
         fprintf(stdout, "MPIR_CVAR_CH4_POSIX_QUICQ_CELL_SIZE %d\n",
                 MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE);
+        fprintf(stdout, "MPIR_CVAR_CH4_POSIX_QUICQ_NUM_EXTBUFS %d\n",
+                MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS);
+        fprintf(stdout, "MPIR_CVAR_CH4_POSIX_QUICQ_EXTBUF_SIZE %d\n",
+                MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE);
         fprintf(stdout, "sizeof(MPIDI_POSIX_eager_quicq_cell_t): %lu\n",
                 sizeof(MPIDI_POSIX_eager_quicq_cell_t));
         fprintf(stdout, "cell_alloc_size: %d\n", transport->cell_alloc_size);
         fprintf(stdout, "num_cells_per_queue: %d\n", transport->num_cells_per_queue);
         fprintf(stdout, "queue_obj_size: %d\n", queue_obj_size);
     }
+
+    /* create additional SHM region for bigger buffer */
+    int queue_type = MPIDU_GENQ_SHMEM_QUEUE_TYPE__SERIAL;
+    mpi_errno = MPIDU_genq_shmem_pool_create(MPIR_CVAR_CH4_SHM_POSIX_QUICQ_EXTBUF_SIZE,
+                                             MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_EXTBUFS,
+                                             MPIR_Process.local_size,
+                                             MPIR_Process.local_rank,
+                                             1, &queue_type, &transport->extbuf_pool);
+    MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
     return mpi_errno;
@@ -213,6 +246,9 @@ int MPIDI_POSIX_quicq_finalize(void)
             transport = MPIDI_POSIX_eager_quicq_get_transport(vci_src, vci_dst);
 
             mpi_errno = MPIDU_Init_shm_free(transport->shm_base);
+            MPIR_ERR_CHECK(mpi_errno);
+
+            mpi_errno = MPIDU_genq_shmem_pool_destroy(transport->extbuf_pool);
             MPIR_ERR_CHECK(mpi_errno);
 
             MPL_free(transport->send_terminals);
