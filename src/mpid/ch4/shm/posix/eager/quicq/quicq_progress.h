@@ -26,7 +26,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
             }
             terminal = &transport->recv_terminals[src_local_rank];
             if (terminal->last_seq == terminal->last_ack) {
-                uint32_t new_seq = MPL_atomic_relaxed_load_uint32(&terminal->cntr->seq.a);
+                uint32_t new_seq = MPL_atomic_acquire_load_uint32(&terminal->cntr->seq.a);
                 if (new_seq != terminal->last_ack) {
                     terminal->last_seq = new_seq;
                     *made_progress = 1;
@@ -42,7 +42,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
             terminal = &transport->send_terminals[dst_local_rank];
             if (terminal->last_ack < terminal->last_seq) {
                 /* TODO: what if recv completes out of order */
-                uint32_t new_ack = MPL_atomic_relaxed_load_uint32(&terminal->cntr->ack.a);
+                uint32_t new_ack = MPL_atomic_acquire_load_uint32(&terminal->cntr->ack.a);
                 if (new_ack != terminal->last_ack) {
                     terminal->last_ack = new_ack;
                     *made_progress = 1;

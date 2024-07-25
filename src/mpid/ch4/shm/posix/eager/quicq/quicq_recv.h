@@ -81,7 +81,7 @@ MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t * transaction
     transport = MPIDI_POSIX_eager_quicq_get_transport(transaction->src_vci, transaction->dst_vci);
     terminal = &transport->recv_terminals[transaction->src_local_rank];
 
-    MPL_atomic_relaxed_store_uint32(&terminal->cntr->ack.a, terminal->last_ack);
+    MPL_atomic_release_store_uint32(&terminal->cntr->ack.a, terminal->last_ack);
 
     MPIR_FUNC_EXIT;
 }
