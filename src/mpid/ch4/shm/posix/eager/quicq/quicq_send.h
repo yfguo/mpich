@@ -11,12 +11,12 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE - sizeof(MPIDI_POSIX_eager_quicq_cell_t);
+    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE - sizeof(MPIDI_POSIX_eager_quicq_cell_t);
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
 {
-    return MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE;
+    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
 }
 
 /* This function attempts to send the next chunk of a message via the queue. If no cells are

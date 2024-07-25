@@ -116,6 +116,10 @@ static int init_transport(int vci_src, int vci_dst)
 
     if (MPIR_CVAR_DEBUG_SUMMARY && MPIR_Process.rank == 0) {
         fprintf(stdout, "==== QUICQ sizes and limits ====\n");
+        fprintf(stdout, "MPIR_CVAR_CH4_POSIX_QUICQ_NUM_CELLS %d\n",
+                MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS);
+        fprintf(stdout, "MPIR_CVAR_CH4_POSIX_QUICQ_CELL_SIZE %d\n",
+                MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE);
         fprintf(stdout, "sizeof(MPIDI_POSIX_eager_quicq_cell_t): %lu\n",
                 sizeof(MPIDI_POSIX_eager_quicq_cell_t));
         fprintf(stdout, "cell_alloc_size: %d\n", transport->cell_alloc_size);
@@ -136,7 +140,7 @@ int MPIDI_POSIX_quicq_init(int rank, int size)
     MPIR_FUNC_ENTER;
 
     /* ensure max alignment for payload */
-    MPIR_Assert((MPIDI_POSIX_EAGER_QUICQ_CELL_SIZE & (MAX_ALIGNMENT - 1)) == 0);
+    MPIR_Assert((MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE & (MAX_ALIGNMENT - 1)) == 0);
     MPIR_Assert((sizeof(MPIDI_POSIX_eager_quicq_cell_t) & (MAX_ALIGNMENT - 1)) == 0);
 
     /* Init vci 0. Communication on vci 0 is enabled afterwards. */
