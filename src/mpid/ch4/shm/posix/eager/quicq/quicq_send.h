@@ -11,7 +11,7 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE - sizeof(MPIDI_POSIX_eager_quicq_cell_t);
+    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
@@ -87,7 +87,6 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
      * tail. */
     cell->payload_size = 0;
     if (am_hdr) {
-        MPI_Aint resized_am_hdr_sz = MPL_ROUND_UP_ALIGN(am_hdr_sz, MAX_ALIGNMENT);
         cell->am_header = *msg_hdr;
         cell->type = MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR;
         /* send am_hdr if this is the first segment */
@@ -97,10 +96,9 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
             MPIR_Typerep_copy(payload, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_STREAM);
         }
         /* make sure the data region starts at the boundary of MAX_ALIGNMENT */
-        payload = payload + resized_am_hdr_sz;
-        cell->payload_size += resized_am_hdr_sz;
-        cell->am_header.am_hdr_sz = resized_am_hdr_sz;
-        available -= cell->am_header.am_hdr_sz;
+        payload = payload + am_hdr_sz;
+        cell->payload_size += am_hdr_sz;
+        available -= am_hdr_sz;
     } else {
         cell->type = MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA;
     }
