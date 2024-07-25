@@ -122,7 +122,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
         *bytes_sent = packed_size;
     }
 
-    MPL_atomic_relaxed_store_uint32(&terminal->cntr->seq.a, terminal->last_seq);
+    MPL_atomic_release_store_uint32(&terminal->cntr->seq.a, terminal->last_seq);
 
   fn_exit:
     MPIR_FUNC_EXIT;
