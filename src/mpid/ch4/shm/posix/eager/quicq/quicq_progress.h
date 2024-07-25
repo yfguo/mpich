@@ -26,7 +26,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
             }
             terminal = &transport->recv_terminals[src_local_rank];
             if (terminal->last_seq == terminal->last_ack) {
-                uint32_t new_seq = MPL_atomic_acquire_load_uint32(&terminal->cntr->seq.a);
+                uint64_t new_seq = MPL_atomic_acquire_load_uint64(&terminal->cntr->seq.a);
                 if (new_seq != terminal->last_ack) {
                     terminal->last_seq = new_seq;
                     *made_progress = 1;
@@ -42,11 +42,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
             terminal = &transport->send_terminals[dst_local_rank];
             if (terminal->last_ack < terminal->last_seq) {
                 /* TODO: what if recv completes out of order */
-                uint32_t new_ack = MPL_atomic_acquire_load_uint32(&terminal->cntr->ack.a);
+                uint64_t new_ack = MPL_atomic_acquire_load_uint64(&terminal->cntr->ack.a);
                 if (new_ack != terminal->last_ack) {
                     MPIDI_POSIX_eager_quicq_cell_t *cell = NULL;
                     for (int i = terminal->last_ack; i < new_ack; i++) {
-                        int cell_idx = i & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+                        int cell_idx = MPIDI_POSIX_EAGER_QUICQ_CNTR_TO_IDX(i);
                         cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
                         if (cell->type & MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_EXTBUF) {
                             char *payload = MPIDI_POSIX_EAGER_QUICQ_CELL_PAYLOAD(cell);

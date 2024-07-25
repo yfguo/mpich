@@ -69,7 +69,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
         goto fn_exit;
     }
 
-    int cell_idx = terminal->last_seq & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+    int cell_idx = MPIDI_POSIX_EAGER_QUICQ_CNTR_TO_IDX(terminal->last_seq);
     cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
 
     /* Get the memory allocated to be used for the message transportation. */
@@ -144,7 +144,7 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     }
 
     terminal->last_seq++;
-    MPL_atomic_release_store_uint32(&terminal->cntr->seq.a, terminal->last_seq);
+    MPL_atomic_release_store_uint64(&terminal->cntr->seq.a, terminal->last_seq);
 
   fn_exit:
     MPIR_FUNC_EXIT;

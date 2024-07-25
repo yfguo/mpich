@@ -34,7 +34,7 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
                 continue;
             }
 
-            int cell_idx = terminal->last_ack & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+            int cell_idx = MPIDI_POSIX_EAGER_QUICQ_CNTR_TO_IDX(terminal->last_ack);
             cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
 
             transaction->src_local_rank = cell->from;
@@ -89,7 +89,7 @@ MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t * transaction
     transport = MPIDI_POSIX_eager_quicq_get_transport(transaction->src_vci, transaction->dst_vci);
     terminal = &transport->recv_terminals[transaction->src_local_rank];
     terminal->last_ack++;
-    MPL_atomic_release_store_uint32(&terminal->cntr->ack.a, terminal->last_ack);
+    MPL_atomic_release_store_uint64(&terminal->cntr->ack.a, terminal->last_ack);
 
     MPIR_FUNC_EXIT;
 }
