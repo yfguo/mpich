@@ -10,8 +10,9 @@
 #include "mpidu_init_shm.h"
 #include "mpidu_genq.h"
 
-#define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR 0
-#define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA 1
+#define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_EXTBUF (0x1)
+#define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR (0x2)
+#define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA (0x4)
 
 #define MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK (MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS - 1)
 
@@ -25,6 +26,11 @@ struct MPIDI_POSIX_eager_quicq_cell {
     MPIDI_POSIX_am_header_t am_header;  /* If this cell is the beginning of a message, it will have
                                          * an active message header and this will point to it. */
 };
+
+typedef struct MPIDI_POSIX_eager_quicq_extbuf_hdr {
+    uint64_t handle;
+    void *buf;
+} MPIDI_POSIX_eager_quicq_extbuf_hdr;
 
 typedef struct MPIDI_POSIX_eager_quicq_cntr {
     union {
@@ -53,6 +59,7 @@ typedef struct MPIDI_POSIX_eager_quicq_transport {
     void **cell_bases;
     MPIDI_POSIX_eager_quicq_terminal_t *send_terminals;
     MPIDI_POSIX_eager_quicq_terminal_t *recv_terminals;
+    MPIDU_genq_shmem_pool_t extbuf_pool;
 } MPIDI_POSIX_eager_quicq_transport_t;
 
 typedef struct MPIDI_POSIX_eager_quicq_global {
