@@ -11,14 +11,12 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPL_ROUND_UP_ALIGN(MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE
-        + MPL_ROUND_UP_ALIGN(sizeof(MPIDI_POSIX_eager_quicq_cell_t), MPL_CACHELINE_SIZE),
-        MPL_CACHELINE_SIZE);
+    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_EXTBUF_SIZE;
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
+    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_EXTBUF_SIZE;
 }
 
 /* This function attempts to send the next chunk of a message via the queue. If no cells are
@@ -44,8 +42,8 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     MPIDI_POSIX_eager_quicq_transport_t *transport;
     MPIDI_POSIX_eager_quicq_cell_t *cell;
     MPIDI_POSIX_eager_quicq_terminal_t *terminal;
-    size_t capacity, available;
-    char *payload;
+    size_t capacity = 0, available = 0;
+    char *payload = NULL;
     int ret = MPIDI_POSIX_OK;
     MPI_Aint packed_size = 0;
 
@@ -73,7 +71,6 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
 
     int cell_idx = terminal->last_seq & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
     cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
-    terminal->last_seq++;
 
     /* Get the memory allocated to be used for the message transportation. */
     payload = MPIDI_POSIX_EAGER_QUICQ_CELL_PAYLOAD(cell);
@@ -84,25 +81,49 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     available = capacity;
 
     cell->from = MPIR_Process.local_rank;
+    cell->type = 0;
+    cell->payload_size = 0;
 
     /* If this is the beginning of the message, mark it as the head. Otherwise it will be the
      * tail. */
-    cell->payload_size = 0;
+    char *data_buf = NULL;
+    MPI_Aint data_sz = 0;
+    MPIDI_Datatype_check_size(datatype, count, data_sz);
+    data_sz -= offset;
+    if (am_hdr_sz > capacity || data_sz > (capacity - am_hdr_sz)) {
+        MPIDU_genq_shmem_pool_cell_alloc(transport->extbuf_pool, (void **) &data_buf,
+                                         MPIR_Process.local_rank, 0 /* intra NUMA */ , buf);
+        MPIR_Assert(data_buf != NULL);  /* debug */
+        // if (unlikely(data_buf == NULL)) {
+        //     ret = MPIDI_POSIX_NOK;
+        //     goto fn_exit;
+        // }
+
+        available = MPIDI_POSIX_eager_payload_limit();
+        cell->type |= MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_EXTBUF;
+
+        uint64_t handle = MPIDU_genq_shmem_pool_cell_to_handle(transport->extbuf_pool, data_buf);
+        ((MPIDI_POSIX_eager_quicq_extbuf_hdr *) payload)->handle = handle;
+        ((MPIDI_POSIX_eager_quicq_extbuf_hdr *) payload)->buf = data_buf;
+    } else {
+        data_buf = payload;
+        MPIR_Assert(!(cell->type & MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_EXTBUF));
+    }
+
     if (am_hdr) {
         cell->am_header = *msg_hdr;
-        cell->type = MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR;
-        /* send am_hdr if this is the first segment */
+        cell->type |= MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR;
         if (is_topo_local) {
-            MPIR_Typerep_copy(payload, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_NONE);
+            MPIR_Typerep_copy(data_buf, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_NONE);
         } else {
-            MPIR_Typerep_copy(payload, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_STREAM);
+            MPIR_Typerep_copy(data_buf, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_STREAM);
         }
-        /* make sure the data region starts at the boundary of MAX_ALIGNMENT */
-        payload = payload + am_hdr_sz;
         cell->payload_size += am_hdr_sz;
+        cell->am_header.am_hdr_sz = am_hdr_sz;
         available -= am_hdr_sz;
+        data_buf += am_hdr_sz;
     } else {
-        cell->type = MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA;
+        cell->type |= MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA;
     }
 
     /* We want to skip packing of send buffer if there is no data to be sent . buf == NULL is
@@ -112,16 +133,17 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
      * data. */
     if (bytes_sent) {
         if (is_topo_local) {
-            MPIR_Typerep_pack(buf, count, datatype, offset, payload, available, &packed_size,
+            MPIR_Typerep_pack(buf, count, datatype, offset, data_buf, available, &packed_size,
                               MPIR_TYPEREP_FLAG_NONE);
         } else {
-            MPIR_Typerep_pack(buf, count, datatype, offset, payload, available, &packed_size,
+            MPIR_Typerep_pack(buf, count, datatype, offset, data_buf, available, &packed_size,
                               MPIR_TYPEREP_FLAG_STREAM);
         }
         cell->payload_size += packed_size;
         *bytes_sent = packed_size;
     }
 
+    terminal->last_seq++;
     MPL_atomic_release_store_uint32(&terminal->cntr->seq.a, terminal->last_seq);
 
   fn_exit:

@@ -44,6 +44,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
                 /* TODO: what if recv completes out of order */
                 uint32_t new_ack = MPL_atomic_acquire_load_uint32(&terminal->cntr->ack.a);
                 if (new_ack != terminal->last_ack) {
+                    MPIDI_POSIX_eager_quicq_cell_t *cell = NULL;
+                    for (int i = terminal->last_ack; i < new_ack; i++) {
+                        int cell_idx = i & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK;
+                        cell = terminal->cell_base + cell_idx * transport->cell_alloc_size;
+                        if (cell->type & MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_EXTBUF) {
+                            char *payload = MPIDI_POSIX_EAGER_QUICQ_CELL_PAYLOAD(cell);
+                            void *extbuf = ((MPIDI_POSIX_eager_quicq_extbuf_hdr *) payload)->buf;
+                            MPIDU_genq_shmem_pool_cell_free(transport->extbuf_pool, extbuf);
+                        }
+                    }
                     terminal->last_ack = new_ack;
                     *made_progress = 1;
                 }
