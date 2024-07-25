@@ -113,8 +113,8 @@ static int init_transport(int vci_src, int vci_dst)
         memset(q_base, 0, queue_obj_size);
         transport->send_terminals[remote_rank].cell_base = QUEUE_CELL_BASE(q_base);
         transport->send_terminals[remote_rank].cntr = q_base;
-        MPL_atomic_store_uint32(&transport->send_terminals[remote_rank].cntr->seq.a, 0);
-        MPL_atomic_store_uint32(&transport->send_terminals[remote_rank].cntr->ack.a, 0);
+        MPL_atomic_store_uint64(&transport->send_terminals[remote_rank].cntr->seq.a, 0);
+        MPL_atomic_store_uint64(&transport->send_terminals[remote_rank].cntr->ack.a, 0);
         transport->send_terminals[remote_rank].last_seq = 0;
         transport->send_terminals[remote_rank].last_ack = 0;
     }
