@@ -14,7 +14,14 @@
 #define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_HDR (0x2)
 #define MPIDI_POSIX_EAGER_QUICQ_CELL_TYPE_DATA (0x4)
 
-#define MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK (MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS - 1)
+/* The number of cells per queue is always rounded up to the next power of two number during
+ * init. In this way we can convert counter value to index by just masking the higher bits.
+ * The counter has 64 bits. We do not check counter overflow as it would be extremely
+ * unlikely to happen. Assuming each rank can send and recv at 100M messages per second, it
+ * would take more than 5000 years to overflow.
+ */
+#define MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK ((uint64_t) MPIR_CVAR_CH4_SHM_POSIX_QUICQ_NUM_CELLS - 1)
+#define MPIDI_POSIX_EAGER_QUICQ_CNTR_TO_IDX(cntr) ((cntr) & MPIDI_POSIX_EAGER_QUICQ_CNTR_MASK)
 
 typedef struct MPIDI_POSIX_eager_quicq_cell MPIDI_POSIX_eager_quicq_cell_t;
 
@@ -34,11 +41,11 @@ typedef struct MPIDI_POSIX_eager_quicq_extbuf_hdr {
 
 typedef struct MPIDI_POSIX_eager_quicq_cntr {
     union {
-        MPL_atomic_uint32_t a;
+        MPL_atomic_uint64_t a;
         char pad[MPL_CACHELINE_SIZE];
     } seq;
     union {
-        MPL_atomic_uint32_t a;
+        MPL_atomic_uint64_t a;
         char pad[MPL_CACHELINE_SIZE];
     } ack;
 } MPIDI_POSIX_eager_quicq_cntr_t;
@@ -46,8 +53,8 @@ typedef struct MPIDI_POSIX_eager_quicq_cntr {
 typedef struct MPIDI_POSIX_eager_quicq_terminal {
     void *cell_base;
     MPIDI_POSIX_eager_quicq_cntr_t *cntr;
-    int last_seq;
-    int last_ack;
+    uint64_t last_seq;
+    uint64_t last_ack;
 } MPIDI_POSIX_eager_quicq_terminal_t;
 
 typedef struct MPIDI_POSIX_eager_quicq_transport {
