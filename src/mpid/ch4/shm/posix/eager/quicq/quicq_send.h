@@ -11,7 +11,9 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE;
+    return MPL_ROUND_UP_ALIGN(MPIR_CVAR_CH4_SHM_POSIX_QUICQ_CELL_SIZE
+        + MPL_ROUND_UP_ALIGN(sizeof(MPIDI_POSIX_eager_quicq_cell_t), MPL_CACHELINE_SIZE),
+        MPL_CACHELINE_SIZE);
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)

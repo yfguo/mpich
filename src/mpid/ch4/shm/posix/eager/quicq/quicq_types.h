@@ -73,6 +73,6 @@ MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_quicq_transport_t
     ((char*)(cell) + sizeof(MPIDI_POSIX_eager_quicq_cell_t))
 
 #define MPIDI_POSIX_EAGER_QUICQ_CELL_CAPACITY(transport) \
-    ((transport)->size_of_cell - sizeof(MPIDI_POSIX_eager_quicq_cell_t))
+    ((transport)->cell_alloc_size - sizeof(MPIDI_POSIX_eager_quicq_cell_t))
 
 #endif /* POSIX_EAGER_QUICQ_TYPES_H_INCLUDED */
