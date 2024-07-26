@@ -232,7 +232,7 @@ typedef struct {
 
 #include "string.h"
 
-#ifdef HAVE_MM256_STREAM_SI256
+#ifdef MPL_HAVE__MM256_STREAM_SI256
 #include <immintrin.h>
 
 static inline void MPL_Memcpy_stream(void *dest, const void *src, size_t n)
@@ -316,7 +316,7 @@ static inline void MPL_Memcpy_stream(void *dest, const void *src, size_t n)
 
 #else
 
-#ifdef HAVE_SSE2
+#ifdef MPL_HAVE__MM_STREAM_SI128
 #include <immintrin.h>
 
 static inline void MPL_Memcpy_stream(void *dest, const void *src, size_t n)
