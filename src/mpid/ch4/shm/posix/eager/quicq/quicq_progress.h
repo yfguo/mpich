@@ -19,18 +19,51 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_progress(int vci, int *made_progr
     for (int vci_src = 0; vci_src < max_vcis; vci_src++) {
         transport = MPIDI_POSIX_eager_quicq_get_transport(vci_src, vci);
 
-        for (int src_local_rank = 0; src_local_rank < MPIR_Process.local_size;
-             src_local_rank++) {
-            if (src_local_rank == MPIR_Process.local_rank) {
+        // for (int src_local_rank = 0; src_local_rank < MPIR_Process.local_size;
+        //      src_local_rank++) {
+        //     if (src_local_rank == MPIR_Process.local_rank) {
+        //         continue;
+        //     }
+        //     terminal = &transport->recv_terminals[src_local_rank];
+        //     if (terminal->last_seq == terminal->last_ack) {
+        //         uint64_t new_seq = MPL_atomic_acquire_load_uint64(&terminal->cntr->seq.a);
+        //         if (new_seq != terminal->last_ack) {
+        //             terminal->last_seq = new_seq;
+        //             *made_progress = 1;
+        //         }
+        //     }
+        // }
+
+        int poll_cache_size = MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_CACHE_SIZE;
+        int poll_batch_size = MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_BATCH_SIZE;
+        int last_pos = poll_cache_size + 1;
+        int src_local_rank = 0;
+        int16_t *poll_cache = MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks;
+        for (int count = 0; count < poll_cache_size + poll_batch_size; count++) {
+            if (count < poll_cache_size) {
+                /* ranks with posted recv */
+                src_local_rank = poll_cache[count];
+            } else {
+                /* batch polling for uncached ranks, using the extra element at the end of
+                 * the polling cache to store last checked rank in batch mode */
+                if (count == poll_cache_size) {
+                    poll_cache[last_pos] = poll_cache[poll_cache_size];
+                }
+                int16_t last_cache = poll_cache[last_pos];
+                last_cache = (last_cache + 1) % (int16_t) MPIR_Process.local_size;
+                src_local_rank = last_cache;
+                poll_cache[last_pos] = last_cache;
+            }
+
+            if (src_local_rank == -1 || src_local_rank == MPIR_Process.local_rank) {
                 continue;
             }
+
             terminal = &transport->recv_terminals[src_local_rank];
-            if (terminal->last_seq == terminal->last_ack) {
-                uint64_t new_seq = MPL_atomic_acquire_load_uint64(&terminal->cntr->seq.a);
-                if (new_seq != terminal->last_ack) {
-                    terminal->last_seq = new_seq;
-                    *made_progress = 1;
-                }
+            uint64_t new_seq = MPL_atomic_acquire_load_uint64(&terminal->cntr->seq.a);
+            if (new_seq != terminal->last_seq) {
+                terminal->last_seq = new_seq;
+                *made_progress = 1;
             }
         }
 
