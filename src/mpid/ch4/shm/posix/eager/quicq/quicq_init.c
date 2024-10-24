@@ -51,6 +51,26 @@ cvars:
       description : >-
         Size of each cell.
 
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_CACHE_SIZE
+      category    : CH4
+      type        : int
+      default     : 3
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Size of the array to store expected receives to speed polling.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_BATCH_SIZE
+      category    : CH4
+      type        : int
+      default     : 4
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Number of terminals to poll during one iteration of the progress loop.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -161,6 +181,13 @@ static int init_transport(int vci_src, int vci_dst)
                                              1, &queue_type, &transport->extbuf_pool);
     MPIR_ERR_CHECK(mpi_errno);
 
+    /* create polling cache, allocate one extra element for storing last rank in batch mode */
+    int cache_alloc_size = (MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_CACHE_SIZE + 1) * sizeof(int16_t);
+    MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks = MPL_malloc(cache_alloc_size,
+                                                                       MPL_MEM_SHM);
+    MPIR_Assert(MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks);
+    memset(MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks, -1, cache_alloc_size);
+
   fn_exit:
     return mpi_errno;
   fn_fail:
@@ -255,6 +282,8 @@ int MPIDI_POSIX_quicq_finalize(void)
             MPL_free(transport->recv_terminals);
         }
     }
+
+    MPL_free(MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks);
 
   fn_exit:
     MPIR_FUNC_EXIT;

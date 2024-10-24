@@ -73,6 +73,7 @@ typedef struct MPIDI_POSIX_eager_quicq_global {
     int max_vcis;
     /* 2d array indexed with [src_vci][dst_vci] */
     MPIDI_POSIX_eager_quicq_transport_t transports[MPIDI_CH4_MAX_VCIS][MPIDI_CH4_MAX_VCIS];
+    int16_t *first_poll_local_ranks;
 } MPIDI_POSIX_eager_quicq_global_t;
 
 extern MPIDI_POSIX_eager_quicq_global_t MPIDI_POSIX_eager_quicq_global;

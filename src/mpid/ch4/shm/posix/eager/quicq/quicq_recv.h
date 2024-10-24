@@ -96,10 +96,54 @@ MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t * transaction
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_posted_hook(int grank)
 {
+    int local_rank, i;
+
+    MPIR_FUNC_ENTER;
+
+    if (grank >= 0) {
+        local_rank = MPIDI_POSIX_global.local_ranks[grank];
+
+        /* Put the posted receive in the list of fastboxes to be polled first. If the list is full,
+         * it will get polled after the boxes in the list are polled, which will be slower, but will
+         * still match the message. */
+        for (i = 0; i < MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_CACHE_SIZE; i++) {
+            if (MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks[i] == -1) {
+                MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks[i] = local_rank;
+                break;
+            } else if (MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks[i] ==
+                       local_rank) {
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
+    MPIR_FUNC_EXIT;
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_completed_hook(int grank)
 {
+    int i, local_rank;
+
+    MPIR_FUNC_ENTER;
+
+    if (grank >= 0) {
+        local_rank = MPIDI_POSIX_global.local_ranks[grank];
+
+        /* Remove the posted receive from the list of fastboxes to be polled first now that the
+         * request is done. */
+        for (i = 0; i < MPIR_CVAR_CH4_SHM_POSIX_QUICQ_POLL_CACHE_SIZE; i++) {
+            if (MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks[i] == local_rank) {
+                MPIDI_POSIX_eager_quicq_global.first_poll_local_ranks[i] = -1;
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
+    MPIR_FUNC_EXIT;
 }
 
 #endif /* POSIX_EAGER_QUICQ_RECV_H_INCLUDED */
