@@ -322,3 +322,56 @@ bool is_intra_comm(csel_node_s * node)
 {
     return node->type == CSEL_NODE_TYPE__OPERATOR__COMM_TYPE_INTRA;
 }
+
+bool is_inter_comm(csel_node_s * node)
+{
+    return node->type == CSEL_NODE_TYPE__OPERATOR__COMM_TYPE_INTER;
+}
+
+csel_node_s *csel_node_create__inplace()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__IS_SBUF_INPLACE);
+    new_node->u.is_sbuf_inplace.val = true;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__noinplace()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__IS_SBUF_INPLACE);
+    new_node->u.is_sbuf_inplace.val = false;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__commutative()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__IS_COMMUTATIVE);
+    new_node->u.is_commutative.val = true;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__parent_comm()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__COMM_HIERARCHY);
+    new_node->u.comm_hierarchy.val = MPIR_CSEL_COMM_HIERARCHY__PARENT;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__builtin_op()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__IS_OP_BUILT_IN);
+    new_node->u.is_op_built_in.val = true;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__node_consecutive()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__IS_NODE_CONSECUTIVE);
+    new_node->u.is_node_consecutive.val = true;
+    return new_node;
+}
+
+csel_node_s *csel_node_create__power_of_two()
+{
+    csel_node_s *new_node = csel_node_create(CSEL_NODE_TYPE__OPERATOR__COMM_SIZE_POW2);
+    return new_node;
+}

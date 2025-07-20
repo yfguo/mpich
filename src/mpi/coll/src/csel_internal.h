@@ -165,4 +165,14 @@ csel_node_s *csel_tree_range_match(csel_node_s * node, int val);
 bool is_allreduce(csel_node_s * node);
 bool is_barrier(csel_node_s * node);
 bool is_intra_comm(csel_node_s * node);
+bool is_inter_comm(csel_node_s * node);
+
+csel_node_s *csel_node_create__inplace();
+csel_node_s *csel_node_create__noinplace();
+csel_node_s *csel_node_create__commutative();
+csel_node_s *csel_node_create__parent_comm();
+csel_node_s *csel_node_create__builtin_op();
+csel_node_s *csel_node_create__node_consecutive();
+csel_node_s *csel_node_create__power_of_two();
+
 #endif /* CSEL_INTERNAL_CONTAINER_H_INCLUDED */
