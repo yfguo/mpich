@@ -311,3 +311,14 @@ csel_node_s *csel_tree_range_match(csel_node_s * node, int val)
         }
     }
 }
+
+bool is_barrier(csel_node_s * node)
+{
+    return node->type == CSEL_NODE_TYPE__OPERATOR__COLLECTIVE
+        && node->u.collective.coll_type == MPIR_CSEL_COLL_TYPE__BARRIER;
+}
+
+bool is_intra_comm(csel_node_s * node)
+{
+    return node->type == CSEL_NODE_TYPE__OPERATOR__COMM_TYPE_INTRA;
+}

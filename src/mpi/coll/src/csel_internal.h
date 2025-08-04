@@ -144,6 +144,8 @@ extern const char *Csel_coll_type_str[];
 extern const char *Csel_comm_hierarchy_str[];
 extern const char *Csel_container_type_str[];
 
+#define CSEL_CONTAINER(node) ((MPII_Csel_container_s *) (node)->u.cnt.container)
+
 void Csel_print_node(csel_node_s * node);
 void Csel_print_container(MPII_Csel_container_s * cnt);
 void Csel_print_tree(csel_node_s * node);
@@ -159,4 +161,8 @@ void csel_node_update(csel_node_s * node, csel_node_s node_value);
 void csel_tree_optimize(csel_node_s ** node);
 
 csel_node_s *csel_tree_range_match(csel_node_s * node, int val);
+
+bool is_allreduce(csel_node_s * node);
+bool is_barrier(csel_node_s * node);
+bool is_intra_comm(csel_node_s * node);
 #endif /* CSEL_INTERNAL_CONTAINER_H_INCLUDED */
