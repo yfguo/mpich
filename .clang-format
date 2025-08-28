@@ -1,0 +1,97 @@
+# clang-format configuration to match GNU Indent style used in MPICH
+# Based on configuration in maint/code-cleanup.bash
+
+# BasedOnStyle: LLVM
+
+LineEnding: LF
+
+# Language settings
+Language: C
+
+# Indentation
+IndentWidth: 4
+ContinuationIndentWidth: 4
+IndentCaseLabels: true
+IndentPPDirectives: None
+UseTab: Never
+
+# Line length
+ColumnLimit: 100
+
+# Brace placement - K&R style
+BreakBeforeBraces: Linux
+
+# Spacing
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpacesInParens: Custom
+SpacesInParensOptions:
+  ExceptDoubleParentheses: true
+  InConditionalStatements: false
+  InEmptyParentheses: false
+  Other: false
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceAroundPointerQualifiers: Default
+
+# Line breaks
+BreakBeforeBinaryOperators: NonAssignment
+AlwaysBreakBeforeMultilineStrings: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+# clang-format 20+
+# BreakBinaryOperations: RespectPrecedence
+
+# Blank lines
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+
+# Comments
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+
+# Alignment
+AlignOperands: Align
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: Consecutive
+AlignEscapedNewlines: LeftWithLastLine
+
+# Other formatting options
+Cpp11BracedListStyle: false
+DerivePointerAlignment: false
+PointerAlignment: Right
+CompactNamespaces: false
+
+# Function declarations
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BinPackParameters: BinPack
+BinPackArguments: true
+
+# Include sorting (disable to avoid changing include order)
+SortIncludes: Never
+
+ReflowComments: IndentOnly
+
+PenaltyBreakBeforeFirstCallParameter: 10000
+
+ForEachMacros: [
+  LL_FOREACH,
+  LL_FOREACH_N,
+  LL_FOREACH_SAFE,
+  LL_FOREACH_SAFE_N,
+  DL_FOREACH,
+  DL_FOREACH_NP,
+  DL_FOREACH_SAFE,
+  DL_FOREACH_SAFE_NP,
+  CDL_FOREACH,
+  CDL_FOREACH_NP,
+  CDL_FOREACH_SAFE,
+  CDL_FOREACH_SAFE_NP,
+  COMM_FOREACH,
+  json_object_object_foreach
+]
