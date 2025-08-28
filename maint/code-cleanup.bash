@@ -25,18 +25,13 @@ indent_code()
     $indent \
         `# Expansion of Kernighan & Ritchie style` \
         --no-blank-lines-after-declarations \
-        `# --no-blank-lines-after-procedures` `# Overwritten below` \
-        `# --break-before-boolean-operator` `# Overwritten below` \
         --no-blank-lines-after-commas \
         --braces-on-if-line \
         --braces-on-struct-decl-line \
-        `# --comment-indentation33` `# Overwritten below` \
         --declaration-comment-column33 \
         --no-comment-delimiters-on-blank-lines \
         --cuddle-else \
         --continuation-indentation4 \
-        `# --case-indentation0` `# Overwritten below` \
-        `# --else-endif-column33` `# Overwritten below` \
         --space-after-cast \
         --line-comments-indentation0 \
         --declaration-indentation1 \
@@ -45,7 +40,6 @@ indent_code()
         --honour-newlines \
         --indent-level4 \
         --parameter-indentation0 \
-        `# --line-length75` `# Overwritten below` \
         --continue-at-parentheses \
         --no-space-after-function-call-names \
         --no-space-after-parentheses \
@@ -53,10 +47,8 @@ indent_code()
         --space-after-for \
         --space-after-if \
         --space-after-while \
-        `# --dont-star-comments` `# Overwritten below` \
         --leave-optional-blank-lines \
         --dont-space-special-semicolon \
-        `# End of K&R expansion` \
         --line-length100 \
         --else-endif-column1 \
         --start-left-side-of-comments \
