@@ -56,7 +56,7 @@ if [ "$CHANNEL" = "all" ] ; then
 else
     find src \(                 \
              \( -path src/mpid -o       \
-                    -path src/pm/smpd -o    \
+                    -path src/pm/hydra -o    \
                     -path src/pmi -o        \
                     -path src/mpi/romio -o  \
                 -path src/binding -o        \
@@ -77,8 +77,8 @@ else
              -print
 
     if [ "$CHANNEL" != "dcmf" ] ; then
-        find src/pmi/pmi2                         \
-             src/pmi/simple                       \
+        find src/pmi/include                      \
+             src/pmi/src                          \
          src/mpid/ch3/channels/${CHANNEL}                 \
          src/mpid/common                          \
          src/mpid/ch3                         \
