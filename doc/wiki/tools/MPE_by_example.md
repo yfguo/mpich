@@ -20,11 +20,9 @@ a number of examples.
 
 ## Installation
 
-Despite what is stated on its
-[official website](http://www.mcs.anl.gov/research/projects/perfvis/download/index.htm),
-the most up-to-date release of MPE is only available bundled with
-MPICH2, which may be found
-[here](http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads).
+MPE is now released as a standalone project separate from MPICH.  The
+tarballs and release notes are hosted on the
+[Performance Visualization project page](http://www.mcs.anl.gov/research/projects/perfvis/software/index.htm).
 
 In this tutorial, we'll be using MPICH2 version `1.4.1p1`; these
 instructions have been tested on a new ubuntu `12.04.1` installation, as
@@ -33,28 +31,31 @@ well as Arch Linux, so they should be fairly distribution-independent
 
 ### Desktop linux (ubuntu 12.04.1)
 
-**MPE**'s source code can be found at `src/mp2` from the MPICH2 source
-code root:
+Download and unpack the MPE source tree in a directory that is
+independent from your MPICH checkout.  For example:
 
 ```
-cd src/mpe2
-ls
-    aclocal_core.m4      config.log     html           man
-    aclocal_f77.m4       config.status  include        mpe_conf.h.in
-    aclocal_inttypes.m4  config.sub     INSTALL        mpe.def
-    aclocal.m4           configure      INSTALL.cross  mpe.vcproj
-    aclocal_make.m4      configure.in   install-sh     mpewrap.vcproj
-    aclocal_mpi.m4       cross_spec     lib            README
-    autogen.sh           etc            maint          README.windows
-    bin                  f77tmpdir      Makefile       sbin
-    config.guess         fmpe.def       Makefile.in    src
+mkdir -p $HOME/src
+cd $HOME/src
+curl -LO https://www.mcs.anl.gov/research/projects/perfvis/download/MPE/mpe2-1.4.9.tar.gz
+tar -xzf mpe2-1.4.9.tar.gz
 ```
 
-We then make a separate build directory:
+After unpacking, your workspace might look like the following:
 
 ```
-mkdir build
-cd build
+$HOME/src/
+  mpich-4.1.x/
+  mpe2-1.4.9/
+    build/
+```
+
+As usual, we create a separate build directory for MPE:
+
+```
+cd $HOME/src/mpe2-1.4.9
+mkdir build
+cd build
 ```
 
 The next step depends on how MPICH2 was installed. If it was installed
@@ -90,12 +91,12 @@ To actually use MPE, you have three options:
   `make install`.
 - Otherwise, you may also setup your shell path so that the above
   installation is not required. Suppose you compiled MPE in
-  `$HOME/mpich2/src/mpe2/build/`. You must then add the following line
+  `$HOME/src/mpe2-1.4.9/build/`. You must then add the following line
   to your shell configuration file (usually `~/.bashrc`, `~/.zshrc`,
   etc, depending on which shell you use):
 
 ```
-export PATH=$HOME/mpich2/src/mpe2/build/bin:$PATH
+export PATH=$HOME/src/mpe2-1.4.9/build/bin:$PATH
 ```
 
 You must now either restart/open a new shell, or source the config file
