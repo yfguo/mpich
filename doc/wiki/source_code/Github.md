@@ -7,7 +7,7 @@ git clone https://github.com/pmodels/mpich.git (for non-core developers wi
 git clone git@github.com:pmodels/mpich.git (for core developers with commit rights)
 ```
 
-See the [Version Control System](Version_Control_System.md) page for more information about using
+See the [Git workflow guide](Git_Workflow.md) for more information about using
 our current version control system.
 
 ## Setting Up The Build Environment
@@ -15,7 +15,7 @@ our current version control system.
 Doing a git clone may not be sufficient to initialize necessary git
 submodules. To retrieve submodules, run
 
-` git submodule update --init`
+`git submodule update --init --recursive`
 
 The git repository does not contain any of the "derived" files,
 including the configure scripts and the C++ and Fortran 77 language
@@ -35,10 +35,10 @@ find . -name configure -print | xargs rm
 ./autogen.sh
 ```
 
-The autoconf macros and the configure.in scripts now require the
+The autoconf macros and the configure.ac scripts now require the
 following:
 
-  - **autoconf version 2.67 (or higher)**
+  - **autoconf version 2.69 (or higher)**
   - **automake version 1.12.3 (or higher)**
   - **GNU libtool version 2.4 (or higher)**
 
@@ -75,7 +75,7 @@ Otherwise `/usr` will be assumed as a default.
 correctly for you, but not always.**
 
 If you change one of the files that is the source for a derived file,
-such as a `configure.in` file, you will need to rebuild the derived file
+such as a `configure.ac` file, you will need to rebuild the derived file
 (e.g., the corresponding configure file). The safest way to do this is
 to rerun autogen.sh:
 
