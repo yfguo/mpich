@@ -45,6 +45,19 @@ cvars:
 
 MPIDI_POSIX_eager_iqueue_global_t MPIDI_POSIX_eager_iqueue_global;
 
+static void init_stat(MPIDI_POSIX_eager_iqueue_transport_t * transport)
+{
+    transport->count_zero = 0;
+    transport->count_nonzero = 0;
+    transport->len_min = INT_MAX;
+    transport->len_max = 0;
+    transport->len_sum = 0;
+}
+
+static void print_stat(MPIDI_POSIX_eager_iqueue_transport_t * transport)
+{
+}
+
 static int init_transport(void *slab, int vci_src, int vci_dst)
 {
     int mpi_errno = MPI_SUCCESS;
@@ -54,6 +67,8 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
 
     transport->num_cells = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS;
     transport->size_of_cell = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
+
+    init_stat(transport);
 
     if (MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE) {
         int queue_types[2] = {
@@ -188,6 +203,11 @@ int MPIDI_POSIX_iqueue_finalize(void)
     if (MPIDI_POSIX_eager_iqueue_global.root_slab) {
         MPIDI_POSIX_eager_iqueue_transport_t *transport;
         transport = MPIDI_POSIX_eager_iqueue_get_transport(0, 0);
+
+        printf("rank(%d) transport(0,0) =0(%" PRIu64 ") >0(%" PRIu64
+               ") len_min_max_avg(%d, %d, %.2lf)\n", MPIR_Process.rank, transport->count_zero,
+               transport->count_nonzero, transport->len_min, transport->len_max,
+               (double) transport->len_sum / transport->count_nonzero);
 
         mpi_errno = MPIDU_genq_shmem_pool_destroy(transport->cell_pool);
         MPIR_ERR_CHECK(mpi_errno);
