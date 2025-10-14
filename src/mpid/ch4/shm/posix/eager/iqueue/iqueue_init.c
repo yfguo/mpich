@@ -31,6 +31,15 @@ cvars:
       description : >-
         Size of each cell.
 
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE_OVERRIDE
+      category    : CH4
+      type        : int
+      default     : 16384
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Size of each cell reported for eager limit calculation.
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
