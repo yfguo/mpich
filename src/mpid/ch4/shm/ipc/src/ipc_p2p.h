@@ -291,6 +291,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_send_rndv(const void *buf, MPI_Aint coun
     MPIR_ERR_CHECK(mpi_errno);
     MPIR_REQUEST_SET_INFO(sreq, "MPIDI_IPCI_send_rndv: rank=%d, tag=%d, data_sz=%ld\n", rank, tag,
                           data_sz);
+    MPIDIG_REQUEST(sreq, stat.t_rts_cts) = MPIDI_wtime();
 
   fn_exit:
     MPIR_FUNC_EXIT;

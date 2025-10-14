@@ -133,6 +133,20 @@ typedef struct MPIDIG_global_t {
                                          * messages has been received.
                                          * Set inside each target callback.*/
     MPIR_cc_t rma_am_poll_cntr;
+
+    struct {
+        struct {
+            double min;
+            double max;
+            double avg;
+        } t_rts_cts;
+        struct {
+            double min;
+            double max;
+            double avg;
+        } t_data_transmission;
+        int count;
+    } stat;
 } MPIDIG_global_t;
 extern MPIDIG_global_t MPIDIG_global;
 

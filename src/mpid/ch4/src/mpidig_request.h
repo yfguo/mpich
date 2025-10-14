@@ -31,6 +31,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_request_init_internal(MPIR_Request * req,
     MPIDIG_REQUEST(req, req->recv_async).data_copy_cb = NULL;
     MPIDIG_REQUEST(req, req->recv_async).recv_type = MPIDIG_RECV_NONE;
 
+    memset(&MPIDIG_REQUEST(req, stat), 0, sizeof(MPIDIG_REQUEST(req, stat)));
+
     return mpi_errno;
 }
 

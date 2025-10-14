@@ -189,6 +189,31 @@ int MPIDIG_send_data_origin_cb(MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_ENTER;
+
+    MPIDIG_REQUEST(sreq, stat.t_data_transmission) =
+        MPIDI_wtime() - MPIDIG_REQUEST(sreq, stat.t_data_transmission);
+
+    MPIDIG_global.stat.count++;
+
+    if (MPIDIG_REQUEST(sreq, stat.t_rts_cts) < MPIDIG_global.stat.t_rts_cts.min)
+        MPIDIG_global.stat.t_rts_cts.min = MPIDIG_REQUEST(sreq, stat.t_rts_cts);
+    if (MPIDIG_REQUEST(sreq, stat.t_rts_cts) > MPIDIG_global.stat.t_rts_cts.max)
+        MPIDIG_global.stat.t_rts_cts.max = MPIDIG_REQUEST(sreq, stat.t_rts_cts);
+
+    MPIDIG_global.stat.t_rts_cts.avg -=
+        (MPIDIG_global.stat.t_rts_cts.avg - MPIDIG_REQUEST(sreq, stat.t_rts_cts))
+        / MPIDIG_global.stat.count;
+
+    if (MPIDIG_REQUEST(sreq, stat.t_data_transmission) < MPIDIG_global.stat.t_data_transmission.min)
+        MPIDIG_global.stat.t_data_transmission.min = MPIDIG_REQUEST(sreq, stat.t_data_transmission);
+    if (MPIDIG_REQUEST(sreq, stat.t_data_transmission) > MPIDIG_global.stat.t_data_transmission.max)
+        MPIDIG_global.stat.t_data_transmission.max = MPIDIG_REQUEST(sreq, stat.t_data_transmission);
+
+    MPIDIG_global.stat.t_data_transmission.avg -=
+        (MPIDIG_global.stat.t_data_transmission.avg -
+         MPIDIG_REQUEST(sreq, stat.t_data_transmission))
+        / MPIDIG_global.stat.count;
+
     MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(sreq, datatype));
     MPID_Request_complete(sreq);
     MPIR_FUNC_EXIT;
@@ -513,7 +538,9 @@ int MPIDIG_send_cts_target_msg_cb(void *am_hdr, void *data, MPI_Aint in_data_sz,
 
     sreq = (MPIR_Request *) msg_hdr->sreq_ptr;
     MPIR_Assert(sreq != NULL);
+    MPIR_Assert(MPIDIG_REQUEST(sreq, stat.t_rts_cts) > 0);
 
+    MPIDIG_REQUEST(sreq, stat.t_rts_cts) = MPIDI_wtime() - MPIDIG_REQUEST(sreq, stat.t_rts_cts);
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "got cts req handle=0x%x", sreq->handle));
 
@@ -521,6 +548,7 @@ int MPIDIG_send_cts_target_msg_cb(void *am_hdr, void *data, MPI_Aint in_data_sz,
     int remote_vci = MPIDIG_REQUEST(sreq, req->remote_vci);
     /* Start the main data transfer */
 
+    MPIDIG_REQUEST(sreq, stat.t_data_transmission) = MPIDI_wtime();
     if (msg_hdr->tag >= 0) {
         CH4_CALL(am_tag_send(MPIDIG_REQUEST(sreq, u.send.dest), sreq->comm,
                              MPIDIG_SEND_DATA, msg_hdr->tag,
