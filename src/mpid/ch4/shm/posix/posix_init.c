@@ -60,6 +60,7 @@ cvars:
 */
 
 #include "mpidimpl.h"
+#include "mpl_base.h"
 #include "posix_types.h"
 #include "ch4_types.h"
 
@@ -277,6 +278,8 @@ int MPIDI_POSIX_comm_bootstrap(MPIR_Comm * comm)
 
         int eager_shm_size = MPIDI_POSIX_eager_shm_size(MPIR_Process.local_size);
         int head_shm_size = calc_head_shm_size(MPIR_Process.local_size);
+        /* making SHM cell space page-align */
+        head_shm_size = MPL_ROUND_UP_ALIGN(head_shm_size, 4096);
         int slab_size = head_shm_size + eager_shm_size;
         MPIDI_POSIX_global.shm_slab_size = slab_size;
 
