@@ -9,6 +9,7 @@
 #include "mpidimpl.h"
 #include "mpidu_genqi_shmem_types.h"
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -72,6 +73,7 @@ static inline int MPIDU_genqi_nem_mpsc_init(MPIDU_genq_shmem_queue_u * queue)
 {
     MPL_atomic_store_ptr(&queue->q.head.m, NULL);
     MPL_atomic_store_ptr(&queue->q.tail.m, NULL);
+    MPL_atomic_store_int(&queue->q.len.m, 0);
     return 0;
 }
 
@@ -83,6 +85,7 @@ static inline int MPIDU_genqi_nem_mpsc_dequeue(MPIDU_genqi_shmem_pool_s * pool_o
         /* queue is empty */
         *cell = NULL;
     } else {
+        atomic_fetch_sub_explicit(&queue->q.len.m.v, 1, memory_order_relaxed);
         MPIDU_genqi_shmem_cell_header_s *cell_h = NULL;
         cell_h = HANDLE_TO_HEADER(pool_obj, handle);
         *cell = HEADER_TO_CELL(cell_h);
@@ -113,6 +116,7 @@ static inline int MPIDU_genqi_nem_mpsc_dequeue(MPIDU_genqi_shmem_pool_s * pool_o
 static inline int MPIDU_genqi_nem_mpsc_enqueue(MPIDU_genqi_shmem_pool_s * pool_obj,
                                                MPIDU_genq_shmem_queue_u * queue, void *cell)
 {
+    atomic_fetch_add_explicit(&queue->q.len.m.v, 1, memory_order_relaxed);
     MPIDU_genqi_shmem_cell_header_s *cell_h = CELL_TO_HEADER(cell);
     MPL_atomic_store_ptr(&cell_h->u.nem_queue.next_m, NULL);
 
@@ -137,6 +141,7 @@ static inline int MPIDU_genqi_nem_mpmc_init(MPIDU_genq_shmem_queue_u * queue)
 {
     MPL_atomic_store_ptr(&queue->q.head.m, NULL);
     MPL_atomic_store_ptr(&queue->q.tail.m, NULL);
+    MPL_atomic_store_int(&queue->q.len.m, 0);
     return 0;
 }
 
@@ -352,6 +357,18 @@ static inline int MPIDU_genq_shmem_queue_enqueue(MPIDU_genq_shmem_pool_t pool,
 
     MPIR_FUNC_EXIT;
     return rc;
+}
+
+static inline int MPIDU_genq_shmem_queue_get_queue_len(MPIDU_genq_shmem_queue_t queue)
+{
+    MPIDU_genq_shmem_queue_u *queue_obj = (MPIDU_genq_shmem_queue_u *) queue;
+    int flags = queue_obj->q.flags;
+    if (flags == MPIDU_GENQ_SHMEM_QUEUE_TYPE__NEM_MPSC) {
+        int v = MPL_atomic_relaxed_load_int(&queue_obj->q.len.m);
+        return v;
+    } else {
+        return 0;
+    }
 }
 
 #endif /* ifndef MPIDU_GENQ_SHMEM_QUEUE_H_INCLUDED */

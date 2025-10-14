@@ -41,9 +41,13 @@ typedef union MPIDU_genq_shmem_queue {
             MPL_atomic_ptr_t m;
             uint8_t pad[MPIDU_SHM_CACHE_LINE_LEN];
         } tail;
+        union {
+            MPL_atomic_int_t m;
+            uint8_t pad[MPIDU_SHM_CACHE_LINE_LEN];
+        } len;
         unsigned flags;
     } q;
-    uint8_t pad[3 * MPIDU_SHM_CACHE_LINE_LEN];
+    uint8_t pad[4 * MPIDU_SHM_CACHE_LINE_LEN];
 } MPIDU_genq_shmem_queue_u;
 
 typedef struct MPIDU_genqi_shmem_pool {
