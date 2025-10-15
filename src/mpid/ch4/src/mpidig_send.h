@@ -33,7 +33,6 @@ MPL_STATIC_INLINE_PREFIX bool MPIDIG_check_eager(int is_local, MPI_Aint am_hdr_s
 #ifdef MPIDI_CH4_DIRECT_NETMOD
     return MPIDI_NM_am_check_eager(am_hdr_sz, data_sz, buf, count, datatype, sreq);
 #else
-    MPIR_Assert(is_local);
     if (is_local) {
         return MPIDI_SHM_am_check_eager(am_hdr_sz, data_sz, buf, count, datatype, sreq);
     } else {
@@ -112,8 +111,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_isend_impl(const void *buf, MPI_Aint count,
 
         CH4_CALL(am_send_hdr(rank, comm, MPIDIG_SEND, &am_hdr, am_hdr_sz, src_vci, dst_vci),
                  is_local, mpi_errno);
-        MPIDIG_REQUEST(sreq, stat.t_rts_cts) = MPIDI_wtime();
-        // printf("%lf\n", MPIDI_wtime());
     }
     MPIR_ERR_CHECK(mpi_errno);
 

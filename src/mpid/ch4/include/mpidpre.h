@@ -230,10 +230,6 @@ typedef struct MPIDIG_req_t {
             int origin_rank;
         } target;
     } u;
-    struct {
-        double t_rts_cts;
-        double t_data_transmission;
-    } stat;
 } MPIDIG_req_t;
 
 /* Structure to capture arguments for pt2pt persistent communications */

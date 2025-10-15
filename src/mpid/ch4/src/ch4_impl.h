@@ -1077,16 +1077,4 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_set_comm_hint_vci(MPIR_Comm * comm, int type,
     return MPI_SUCCESS;
 }
 
-MPL_STATIC_INLINE_PREFIX double MPIDI_wtime()
-{
-    double ret = 0.0;
-    MPL_time_t t;
-    MPL_wtime(&t);
-    MPL_wtime_todouble(&t, &ret);
-    return ret;
-}
-
-#define TO_MS(t) ((t) * 1000)
-#define TO_US(t) ((t) * 1000 * 1000)
-
 #endif /* CH4_IMPL_H_INCLUDED */

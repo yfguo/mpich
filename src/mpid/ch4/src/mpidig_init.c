@@ -188,14 +188,6 @@ int MPIDIG_am_init(void)
     mpi_errno = MPIDIG_RMA_Init_targetcb_pvars();
     MPIR_ERR_CHECK(mpi_errno);
 
-    MPIDIG_global.stat.t_rts_cts.min = 1.0;
-    MPIDIG_global.stat.t_rts_cts.max = 0.0;
-    MPIDIG_global.stat.t_rts_cts.avg = 0.0;
-    MPIDIG_global.stat.t_data_transmission.min = 1.0;
-    MPIDIG_global.stat.t_data_transmission.max = 0.0;
-    MPIDIG_global.stat.t_data_transmission.avg = 0.0;
-    MPIDIG_global.stat.count = 0;
-
     MPIR_FUNC_EXIT;
 
   fn_exit:
@@ -207,16 +199,6 @@ int MPIDIG_am_init(void)
 void MPIDIG_am_finalize(void)
 {
     MPIR_FUNC_ENTER;
-
-    printf("rank(%d) send_count(%d) t_rts_cts(%.2lfus, %.2lfus, %.2lfus)"
-           " t_data_transmission(%.2lfus, %.2lfus, %.2lfus)\n",
-           MPIR_Process.rank, MPIDIG_global.stat.count,
-           TO_US(MPIDIG_global.stat.t_rts_cts.min),
-           TO_US(MPIDIG_global.stat.t_rts_cts.max),
-           TO_US(MPIDIG_global.stat.t_rts_cts.avg),
-           TO_US(MPIDIG_global.stat.t_data_transmission.min),
-           TO_US(MPIDIG_global.stat.t_data_transmission.max),
-           TO_US(MPIDIG_global.stat.t_data_transmission.avg));
 
     MPIDIU_map_destroy(MPIDI_global.win_map);
 
