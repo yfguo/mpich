@@ -31,14 +31,6 @@ typedef struct MPIDI_POSIX_eager_iqueue_transport {
                                                  * describe each of the cells */
     MPIDU_genq_shmem_queue_t my_terminal;
     MPIDU_genq_shmem_pool_t cell_pool;
-
-    struct {                    /* stat */
-        uint64_t count_zero;
-        uint64_t count_nonzero;
-        uint64_t len_sum;
-        int len_max;
-        int len_min;
-    };
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
 typedef struct MPIDI_POSIX_eager_iqueue_global {

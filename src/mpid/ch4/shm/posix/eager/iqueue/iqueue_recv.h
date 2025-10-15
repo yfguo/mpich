@@ -8,7 +8,6 @@
 
 #include "iqueue_impl.h"
 #include "mpidu_genq.h"
-#include "mpidu_genq_shmem_queue.h"
 
 MPL_STATIC_INLINE_PREFIX int
 MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * transaction)
@@ -24,17 +23,6 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
     for (int vci_src = 0; vci_src < max_vcis; vci_src++) {
         transport = MPIDI_POSIX_eager_iqueue_get_transport(vci_src, vci);
 
-        int len = MPIDU_genq_shmem_queue_get_queue_len(transport->my_terminal);
-        if (len) {
-            transport->count_nonzero++;
-            if (len < transport->len_min)
-                transport->len_min = len;
-            if (len > transport->len_max)
-                transport->len_max = len;
-            transport->len_sum += len;
-        } else {
-            transport->count_zero++;
-        }
         MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_terminal,
                                        (void **) &cell);
         if (cell) {
