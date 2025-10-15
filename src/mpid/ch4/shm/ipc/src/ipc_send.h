@@ -44,7 +44,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_try_lmt_isend(const void *buf, MPI_Aint 
     } else {
         MPI_Aint data_sz;
         MPIDI_Datatype_check_size(datatype, count, data_sz);
-        if ((sizeof(MPIDIG_hdr_t) + data_sz) > MPIDI_POSIX_am_eager_limit()) {
+        /* check against SHM level eager limit setting, not the POSIX one */
+        if ((sizeof(MPIDIG_hdr_t) + data_sz) > MPIDI_SHM_am_eager_limit()) {
             mpi_errno = MPIDI_IPCI_send_rndv(buf, count, datatype, rank, tag, comm, context_offset,
                                              addr, vci_src, vci_dst, request, coll_attr);
             MPIR_ERR_CHECK(mpi_errno);

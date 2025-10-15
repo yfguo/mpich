@@ -83,12 +83,14 @@ MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_SHM_am_hdr_max_sz(void)
 
 MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_SHM_am_eager_limit(void)
 {
-    return MPIDI_POSIX_am_eager_limit();
+    MPI_Aint shm_eager_limit = MPIR_CVAR_CH4_SHM_EAGER_BUFFER_SIZE
+        - (MPIDI_POSIX_am_eager_buf_limit() - MPIDI_POSIX_am_eager_limit());
+    return MPL_MAX(MPIDI_POSIX_am_eager_limit(), shm_eager_limit);
 }
 
 MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_SHM_am_eager_buf_limit(void)
 {
-    return MPIDI_POSIX_am_eager_buf_limit();
+    return MPL_MAX(MPIDI_POSIX_am_eager_buf_limit(), MPIR_CVAR_CH4_SHM_EAGER_BUFFER_SIZE);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_SHM_am_request_init(MPIR_Request * req)
@@ -114,7 +116,7 @@ MPL_STATIC_INLINE_PREFIX bool MPIDI_SHM_am_check_eager(MPI_Aint am_hdr_sz, MPI_A
                                                        MPI_Datatype datatype, MPIR_Request * sreq)
 {
     /* TODO: add checking for IPC transmission */
-    return (am_hdr_sz + data_sz) <= MPIDI_POSIX_am_eager_limit();
+    return (am_hdr_sz + data_sz) <= MPIDI_SHM_am_eager_limit();
 }
 
 MPL_STATIC_INLINE_PREFIX bool MPIDI_SHM_am_can_do_tag(MPIR_Request * rreq)

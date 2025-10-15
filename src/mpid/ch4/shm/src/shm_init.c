@@ -3,6 +3,25 @@
  *     See COPYRIGHT in top-level directory
  */
 
+/*
+=== BEGIN_MPI_T_CVAR_INFO_BLOCK ===
+
+cvars:
+    - name        : MPIR_CVAR_CH4_SHM_EAGER_BUFFER_SIZE
+      category    : CH4
+      type        : int
+      default     : 0
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The buffer size used for calculating eager limit. This can be higher
+        than the underlying POSIX eager buffer because POSIX AM support chunking.
+        When set to 0, POSIX eager buffer size is used.
+
+=== END_MPI_T_CVAR_INFO_BLOCK ===
+*/
+
 #include "mpidimpl.h"
 #include "shm_noinline.h"
 #include "../posix/posix_noinline.h"

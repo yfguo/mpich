@@ -11,13 +11,14 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE_OVERRIDE -
-        sizeof(MPIDI_POSIX_eager_iqueue_cell_t);
+    /* report conservative payload size because am_hdr_sz may be rounded up */
+    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE - sizeof(MPIDI_POSIX_eager_iqueue_cell_t)
+        - MAX_ALIGNMENT;
 }
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
 {
-    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE_OVERRIDE;
+    return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
 }
 
 /* This function attempts to send the next chunk of a message via the queue. If no cells are
