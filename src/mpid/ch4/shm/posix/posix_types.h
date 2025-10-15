@@ -31,6 +31,8 @@ enum {
 #define MPIDI_POSIX_COMM(comm, field)         ((comm)->dev.ch4.shm.posix.field)
 
 typedef struct {
+    int progress_send_limit;    /* number of progress_send in one progress call */
+    int progress_recv_limit;    /* number of progress_recv in one progress call */
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
     MPIDI_POSIX_am_request_header_t *postponed_queue;
     MPIR_Request **active_rreq;

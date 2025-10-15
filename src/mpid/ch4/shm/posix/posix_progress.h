@@ -140,16 +140,65 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int vci, int *made_progre
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
 {
     int mpi_errno = MPI_SUCCESS;
+    int made_send_progress = 0;
+    int send_counter = 0;
+    int made_recv_progress = 0;
+    int recv_counter = 0;
     MPIR_FUNC_ENTER;
 
     MPIR_Assert(vci < MPIDI_POSIX_global.num_vcis);
 
-    for (int i = 0; i < MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ITERATIONS; i++) {
+    if (MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
+        == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_single) {
         mpi_errno = MPIDI_POSIX_progress_recv(vci, made_progress);
         MPIR_ERR_CHECK(mpi_errno);
 
         mpi_errno = MPIDI_POSIX_progress_send(vci, made_progress);
         MPIR_ERR_CHECK(mpi_errno);
+    } else if (MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
+               == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_loop) {
+        for (int i; i < MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_RECV_LIMIT; i++) {
+            made_recv_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
+            *made_progress |= made_recv_progress;
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+        for (int i; i < MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_SEND_LIMIT; i++) {
+            made_send_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_send(vci, &made_send_progress);
+            *made_progress |= made_send_progress;
+            MPIR_ERR_CHECK(mpi_errno);
+        }
+    } else if (MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
+               == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_adaptive) {
+        /* adaptive progress */
+        for (int i = 0; i < MPIDI_POSIX_global.per_vci[vci].progress_recv_limit; i++) {
+            made_recv_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
+            MPIR_ERR_CHECK(mpi_errno);
+            *made_progress |= made_recv_progress;
+            recv_counter += made_recv_progress;
+        }
+        if (recv_counter == MPIDI_POSIX_global.per_vci[vci].progress_recv_limit) {
+            /* additive increase when 100% utilized */
+            MPIDI_POSIX_global.per_vci[vci].progress_recv_limit =
+                MPL_MIN(MPIDI_POSIX_global.per_vci[vci].progress_recv_limit + 1,
+                        MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_RECV_LIMIT);
+        } else if (recv_counter * 2 < MPIDI_POSIX_global.per_vci[vci].progress_recv_limit) {
+            /* limit divided by 2 if utilization below 50% */
+            MPIDI_POSIX_global.per_vci[vci].progress_recv_limit =
+                MPL_MAX(MPIDI_POSIX_global.per_vci[vci].progress_recv_limit / 2, 1);
+        }
+
+        for (int i = 0; i < MPIDI_POSIX_global.per_vci[vci].progress_send_limit; i++) {
+            made_send_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_send(vci, &made_send_progress);
+            MPIR_ERR_CHECK(mpi_errno);
+            *made_progress |= made_send_progress;
+            if (!made_send_progress) {
+                break;
+            }
+        }
     }
 
   fn_exit:

@@ -47,15 +47,38 @@ cvars:
       description : >-
         Controls topology-aware communication in POSIX.
 
-    - name        : MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ITERATIONS
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_RECV_LIMIT
       category    : CH4
       type        : int
-      default     : 1
+      default     : 32
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : >-
-        Number of polling iterations per progress call.
+        Number of recv polling iterations per progress call.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
+      category    : CH4
+      type        : enum
+      default     : single
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        Variable to select barrier algorithm
+        single        - single send, recv per progress
+        loop          - multiple send, recv per progress, controllable by cvars
+        adaptive      - dynamic adjusting send, recv per progress, controllable by cvars
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_SEND_LIMIT
+      category    : CH4
+      type        : int
+      default     : 32
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Number of send polling iterations per progress call.
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -175,6 +198,10 @@ int MPIDI_POSIX_init_vci(int vci)
                                                &MPIDI_POSIX_global.per_vci[vci].am_hdr_buf_pool);
     MPIR_ERR_CHECK(mpi_errno);
 
+    MPIDI_POSIX_global.per_vci[vci].progress_send_limit =
+        MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_SEND_LIMIT;
+    MPIDI_POSIX_global.per_vci[vci].progress_recv_limit =
+        MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_RECV_LIMIT;
     MPIDI_POSIX_global.per_vci[vci].postponed_queue = NULL;
 
     MPIDI_POSIX_global.per_vci[vci].active_rreq =
