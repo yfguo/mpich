@@ -69,8 +69,13 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
     transport->terminals = (void *) ((char *) slab +
                                      MPIDI_POSIX_eager_iqueue_global.terminal_offset);
     transport->my_terminal = &transport->terminals[MPIR_Process.local_rank];
-
     mpi_errno = MPIDU_genq_shmem_queue_init(transport->my_terminal,
+                                            MPIDU_GENQ_SHMEM_QUEUE_TYPE__MPSC);
+
+    transport->data_terminals = (void *) ((char *) slab +
+                                          MPIDI_POSIX_eager_iqueue_global.data_terminal_offset);
+    transport->my_data_terminal = &transport->data_terminals[MPIR_Process.local_rank];
+    mpi_errno = MPIDU_genq_shmem_queue_init(transport->my_data_terminal,
                                             MPIDU_GENQ_SHMEM_QUEUE_TYPE__MPSC);
     MPIR_ERR_CHECK(mpi_errno);
 
@@ -92,9 +97,10 @@ int MPIDI_POSIX_iqueue_shm_size(int local_size)
             MPIDU_genq_shmem_pool_size(cell_size, num_cells, local_size, num_free_queue);
         int terminal_size = local_size * sizeof(MPIDU_genq_shmem_queue_u);
 
-        int slab_size = pool_size + terminal_size;
+        int slab_size = pool_size + 2 * terminal_size;
 
         MPIDI_POSIX_eager_iqueue_global.terminal_offset = pool_size;
+        MPIDI_POSIX_eager_iqueue_global.data_terminal_offset = pool_size + terminal_size;
         MPIDI_POSIX_eager_iqueue_global.slab_size = slab_size;
     }
 
@@ -124,6 +130,7 @@ int MPIDI_POSIX_iqueue_init(void *slab, int rank, int size)
     (void) MPIDI_POSIX_iqueue_shm_size(size);
 
     MPIDI_POSIX_eager_iqueue_global.root_slab = slab;
+    MPIDI_POSIX_eager_iqueue_global.read_counter = 0;
 
     mpi_errno = init_transport(slab, 0, 0);
     MPIR_ERR_CHECK(mpi_errno);

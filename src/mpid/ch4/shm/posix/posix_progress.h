@@ -148,8 +148,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
 
     MPIR_Assert(vci < MPIDI_POSIX_global.num_vcis);
 
+    /* progress_recv must be done twice to check both the terminal and data_terminal */
     if (MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
         == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_single) {
+        mpi_errno = MPIDI_POSIX_progress_recv(vci, made_progress);
+        MPIR_ERR_CHECK(mpi_errno);
         mpi_errno = MPIDI_POSIX_progress_recv(vci, made_progress);
         MPIR_ERR_CHECK(mpi_errno);
 
@@ -158,6 +161,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
     } else if (MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM
                == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_loop) {
         for (int i; i < MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_RECV_LIMIT; i++) {
+            made_recv_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
+            *made_progress |= made_recv_progress;
+            MPIR_ERR_CHECK(mpi_errno);
             made_recv_progress = 0;
             mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
             *made_progress |= made_recv_progress;
@@ -173,6 +180,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int *made_progress)
                == MPIR_CVAR_CH4_SHM_POSIX_PROGRESS_ALGORITHM_adaptive) {
         /* adaptive progress */
         for (int i = 0; i < MPIDI_POSIX_global.per_vci[vci].progress_recv_limit; i++) {
+            made_recv_progress = 0;
+            mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
+            MPIR_ERR_CHECK(mpi_errno);
+            *made_progress |= made_recv_progress;
+            recv_counter += made_recv_progress;
             made_recv_progress = 0;
             mpi_errno = MPIDI_POSIX_progress_recv(vci, &made_recv_progress);
             MPIR_ERR_CHECK(mpi_errno);

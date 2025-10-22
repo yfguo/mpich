@@ -76,7 +76,12 @@ MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const void 
     }
 
     /* Find the correct queue for this rank pair. */
-    terminal = &transport->terminals[MPIDI_SHM_global.local_ranks[grank]];
+    /* for pipeline message, use separate terminals */
+    if (msg_hdr == NULL || msg_hdr->am_type == MPIDI_POSIX_AM_TYPE__PIPELINE) {
+        terminal = &transport->data_terminals[MPIDI_SHM_global.local_ranks[grank]];
+    } else {
+        terminal = &transport->terminals[MPIDI_SHM_global.local_ranks[grank]];
+    }
 
     /* Get the memory allocated to be used for the message transportation. */
     payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);

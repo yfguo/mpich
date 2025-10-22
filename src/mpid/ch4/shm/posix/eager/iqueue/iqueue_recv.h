@@ -23,8 +23,14 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
     for (int vci_src = 0; vci_src < max_vcis; vci_src++) {
         transport = MPIDI_POSIX_eager_iqueue_get_transport(vci_src, vci);
 
-        MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_terminal,
-                                       (void **) &cell);
+        /* alternative between two terminals */
+        if (MPIDI_POSIX_eager_iqueue_global.read_counter % 2) {
+            MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_terminal,
+                                           (void **) &cell);
+        } else {
+            MPIDU_genq_shmem_queue_dequeue(transport->cell_pool, transport->my_data_terminal,
+                                           (void **) &cell);
+        }
         if (cell) {
             transaction->src_local_rank = cell->from;
             transaction->src_vci = vci_src;
@@ -45,6 +51,8 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
             break;
         }
     }
+
+    MPIDI_POSIX_eager_iqueue_global.read_counter++;
 
     MPIR_FUNC_EXIT;
     return ret;
