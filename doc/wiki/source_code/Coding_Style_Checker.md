@@ -11,7 +11,7 @@ The style checker is run every night by the script
 
 ```
   /home/gropp/projects/software/buildsys/src/codingcheck -conf=mpich2 \
-         -skipfiles=src/mpid/globus,src/mpe2,src/pm/smpd,src/pm/ompd,src/pm/forker,src/mpid/mm,src/mpid/rdma,src/pm/mpd/examples,src/mpid/ch3/channels/rdma,src/mpid/dcmfd \
+        -skipfiles=src/mpi/romio,src/pm/hydra \
         -checktest src examples test
 ```
 
@@ -26,7 +26,11 @@ The options have the following meanings:
     directory, skip the directory and all of its members. This is used
     to skip directories from other projects that have their own (we
     hope) style guidelines and directories that are deprecated but still
-    present in the source tree.
+    present in the source tree. Currently this list contains
+    `src/mpi/romio` (the bundled ROMIO MPI-IO library) and
+    `src/pm/hydra` (the Hydra process manager), each of which is
+    maintained as its own subproject with a distinct history and code
+    conventions.
     \-checktest: Apply the style checks to files in directories with a
     parent directory of test. This applies the style checks to the
     MPICH2 test programs.
