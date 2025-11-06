@@ -319,16 +319,22 @@ before including `mpi.h`.
 
 ## Running MPI Programs
 
-#### Q: I don't like <WHATEVER> about mpd, or I'm having a problem with mpdboot, can you fix it?
+#### Q: What happened to mpd and mpdboot?
 
-A: Short answer: no.
+A: The legacy `mpd` process manager (and its `mpdboot` workflow) has been
+removed from MPICH and is no longer supported. MPICH ships with three
+supported process managers today:
 
-Longer answer: For all releases since version 1.2, we recommend
-[using the hydra process manager](../how_to/Using_the_Hydra_Process_Manager.md)
-instead of mpd. The mpd process manager has many problems, as well as an
-annoying `mpdboot` step that is fragile and difficult to use correctly.
-The mpd process manager is deprecated at this point, and most reported
-bugs in it will not be fixed.
+- **Hydra** – the default and recommended option for most users. See the
+  [Hydra how-to guide](../how_to/Using_the_Hydra_Process_Manager.md) for
+  current usage and configuration details.
+- **Gforker** and **Remshell** – lightweight launchers that remain
+  available for environments where Hydra is not desired. Additional
+  guidance on these alternatives can be found in the
+  [alternate process manager documentation](../how_to/Alternate_Process_Managers.md).
+
+If you still have scripts that rely on `mpd`, you will need to migrate to
+one of the supported process managers listed above.
 
 #### Q: Why did my application exited with a BAD TERMINATION error?
 
