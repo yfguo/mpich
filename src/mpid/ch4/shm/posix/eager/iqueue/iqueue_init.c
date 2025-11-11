@@ -31,6 +31,35 @@ cvars:
       description : >-
         Size of each cell.
 
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_NUM_CELLS
+      category    : CH4
+      type        : int
+      default     : 64
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        The number of cells in each fbox ring buffers.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE
+      category    : CH4
+      type        : int
+      default     : 256
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Size of each cell of fbox ring buffer.
+
+    - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE
+      category    : CH4
+      type        : boolean
+      default     : false
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : >-
+        Control if fbox ring buffers are enabled.
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -45,6 +74,10 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
 
     transport->num_cells = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS;
     transport->size_of_cell = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
+    transport->fb_num_cells = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_NUM_CELLS;
+    transport->fb_cell_size = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE;
+    transport->send_q = NULL;
+    transport->recv_q = NULL;
 
     if (MPIR_CVAR_CH4_SHM_POSIX_TOPO_ENABLE) {
         int queue_types[2] = {
@@ -75,6 +108,44 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
                                             MPIDU_GENQ_SHMEM_QUEUE_TYPE__MPSC);
     MPIR_ERR_CHECK(mpi_errno);
 
+    if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
+        int fbox_size = transport->fb_num_cells * transport->fb_cell_size
+            + sizeof(MPIDI_POSIX_eager_iqueue_fbox_header_t);
+        void *fbox_base = slab + MPIDI_POSIX_eager_iqueue_global.fbox_offset;
+
+        transport->send_q = MPL_malloc(sizeof(MPIDI_POSIX_eager_iqueue_fbox_t)
+                                       * MPIR_Process.local_size, MPL_MEM_SHM);
+        MPIR_Assert(transport->send_q);
+        transport->recv_q = MPL_malloc(sizeof(MPIDI_POSIX_eager_iqueue_fbox_t)
+                                       * MPIR_Process.local_size, MPL_MEM_SHM);
+        MPIR_Assert(transport->recv_q);
+
+        for (int send_rank = 0; send_rank < MPIR_Process.local_size; send_rank++) {
+            int fb_idx = MPIR_Process.local_rank * MPIR_Process.local_size + send_rank;
+            transport->send_q[send_rank].header = (MPIDI_POSIX_eager_iqueue_fbox_header_t *)
+                MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(fbox_base, fb_idx);
+            transport->send_q[send_rank].size = transport->fb_num_cells;
+            transport->send_q[send_rank].last_seq = 0;
+            transport->send_q[send_rank].last_ack = 0;
+        }
+        for (int recv_rank = 0; recv_rank < MPIR_Process.local_size; recv_rank++) {
+            int fb_idx = recv_rank * MPIR_Process.local_size + MPIR_Process.local_rank;
+            transport->recv_q[recv_rank].header = (MPIDI_POSIX_eager_iqueue_fbox_header_t *)
+                MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(fbox_base, fb_idx);
+            transport->recv_q[recv_rank].size = transport->fb_num_cells;
+            transport->recv_q[recv_rank].last_seq = 0;
+            transport->recv_q[recv_rank].last_ack = 0;
+        }
+
+        /* Init all queue from receiver side. NUMA affinity set as receiver
+         * process via first-touch. */
+        for (int i = 0; i < MPIR_Process.local_size; i++) {
+            memset(transport->recv_q[i].header, 0, fbox_size);
+            MPL_atomic_store_uint64(&transport->recv_q[i].header->seq, 0);
+            MPL_atomic_store_uint64(&transport->recv_q[i].header->ack, 0);
+        }
+    }
+
   fn_exit:
     return mpi_errno;
   fn_fail:
@@ -96,6 +167,19 @@ int MPIDI_POSIX_iqueue_shm_size(int local_size)
         int slab_size = pool_size + terminal_size;
 
         MPIDI_POSIX_eager_iqueue_global.terminal_offset = pool_size;
+
+        if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
+            int fb_cell_size = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE;
+            int fb_num_cells = MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_NUM_CELLS;
+            MPIR_Assert(MPL_is_pof2(fb_num_cells));
+            MPIR_Assert(fb_cell_size % MPL_CACHELINE_SIZE == 0);
+
+            int total_fb_size = (sizeof(MPIDI_POSIX_eager_iqueue_fbox_header_t) + fb_cell_size
+                                 * fb_num_cells) * local_size * local_size;
+            MPIDI_POSIX_eager_iqueue_global.fbox_offset = slab_size;
+            slab_size += total_fb_size;
+        }
+
         MPIDI_POSIX_eager_iqueue_global.slab_size = slab_size;
     }
 
@@ -184,6 +268,11 @@ int MPIDI_POSIX_iqueue_finalize(void)
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_POSIX_eager_iqueue_global.root_slab = NULL;
+
+        if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
+            MPL_free(transport->send_q);
+            MPL_free(transport->recv_q);
+        }
     }
 
     if (MPIDI_POSIX_eager_iqueue_global.all_vci_slab) {
@@ -198,6 +287,11 @@ int MPIDI_POSIX_iqueue_finalize(void)
 
                 mpi_errno = MPIDU_genq_shmem_pool_destroy(transport->cell_pool);
                 MPIR_ERR_CHECK(mpi_errno);
+
+                if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
+                    MPL_free(transport->send_q);
+                    MPL_free(transport->recv_q);
+                }
             }
         }
 

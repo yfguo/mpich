@@ -15,7 +15,9 @@
 
 typedef struct MPIDI_POSIX_eager_iqueue_cell MPIDI_POSIX_eager_iqueue_cell_t;
 
-/* Each cell contains some data being communicated from one process to another. */
+/* Each cell contains some data being communicated from one process to another.
+ * The struct will be packed by default, occuping 16 bytes. Used in regular
+ * queue and fast box */
 struct MPIDI_POSIX_eager_iqueue_cell {
     uint16_t type;              /* Type of cell (head/tail/etc.) */
     uint16_t from;              /* Who is the message in the cell from */
@@ -24,13 +26,32 @@ struct MPIDI_POSIX_eager_iqueue_cell {
                                          * an active message header and this will point to it. */
 };
 
+typedef struct {
+    /* *INDENT-OFF* */
+    _Alignas(MPL_CACHELINE_SIZE) MPL_atomic_uint64_t seq;
+    _Alignas(MPL_CACHELINE_SIZE) MPL_atomic_uint64_t ack;
+    /* *INDENT-ON* */
+} MPIDI_POSIX_eager_iqueue_fbox_header_t;
+
+typedef struct {
+    MPIDI_POSIX_eager_iqueue_fbox_header_t *header;
+    /* local cached version of seq and ack, starting from a new cache line */
+    uint64_t last_seq;
+    uint64_t last_ack;
+    int size;
+} MPIDI_POSIX_eager_iqueue_fbox_t;
+
 typedef struct MPIDI_POSIX_eager_iqueue_transport {
     int num_cells;              /* The number of cells allocated to each terminal in this transport */
     int size_of_cell;           /* The size of each of the cells in this transport */
+    int fb_num_cells;
+    int fb_cell_size;
     MPIDU_genq_shmem_queue_u *terminals;        /* The list of all the terminals that
                                                  * describe each of the cells */
     MPIDU_genq_shmem_queue_t my_terminal;
     MPIDU_genq_shmem_pool_t cell_pool;
+    MPIDI_POSIX_eager_iqueue_fbox_t *send_q;
+    MPIDI_POSIX_eager_iqueue_fbox_t *recv_q;
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
 typedef struct MPIDI_POSIX_eager_iqueue_global {
@@ -38,6 +59,7 @@ typedef struct MPIDI_POSIX_eager_iqueue_global {
     /* sizes for shmem slabs */
     int slab_size;
     int terminal_offset;
+    int fbox_offset;
     /* shmem slabs */
     void *root_slab;
     void *all_vci_slab;
@@ -58,5 +80,16 @@ MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_iqueue_transport_t
 
 #define MPIDI_POSIX_EAGER_IQUEUE_CELL_CAPACITY(transport) \
     ((transport)->size_of_cell - sizeof(MPIDI_POSIX_eager_iqueue_cell_t))
+
+#define MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport) \
+    ((transport)->fb_cell_size - sizeof(MPIDI_POSIX_eager_iqueue_cell_t))
+
+#define MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, cntr) \
+    ((char *) (q)->header + sizeof(MPIDI_POSIX_eager_iqueue_fbox_header_t) \
+     + ((cntr) % ((q)->size - 1)) * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE)
+
+#define MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(base, idx) \
+    ((char *) (base) + (idx) * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE \
+     * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_NUM_CELLS)
 
 #endif /* POSIX_EAGER_IQUEUE_TYPES_H_INCLUDED */
