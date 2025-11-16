@@ -44,7 +44,7 @@ cvars:
     - name        : MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE
       category    : CH4
       type        : int
-      default     : 256
+      default     : 320
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -144,6 +144,13 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
             MPL_atomic_store_uint64(&transport->recv_q[i].header->seq, 0);
             MPL_atomic_store_uint64(&transport->recv_q[i].header->ack, 0);
         }
+
+        int iov_buf_idx_base = MPIR_Process.local_rank;
+        void *iov_buf_slab = slab + MPIDI_POSIX_eager_iqueue_global.iov_buf_offset;
+        MPIDI_POSIX_eager_iqueue_iov_buf_pool_init(iov_buf_slab,
+                                                   MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE,
+                                                   MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS,
+                                                   iov_buf_idx_base, &transport->pool);
     }
 
   fn_exit:
@@ -178,6 +185,11 @@ int MPIDI_POSIX_iqueue_shm_size(int local_size)
                                  * fb_num_cells) * local_size * local_size;
             MPIDI_POSIX_eager_iqueue_global.fbox_offset = slab_size;
             slab_size += total_fb_size;
+
+            slab_size += MPL_ROUND_UP_ALIGN(slab_size, sysconf(_SC_PAGESIZE));
+            MPIDI_POSIX_eager_iqueue_global.iov_buf_offset = slab_size;
+            slab_size += MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_NUM_CELLS
+                * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE * local_size;
         }
 
         MPIDI_POSIX_eager_iqueue_global.slab_size = slab_size;
@@ -272,6 +284,7 @@ int MPIDI_POSIX_iqueue_finalize(void)
         if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
             MPL_free(transport->send_q);
             MPL_free(transport->recv_q);
+            MPIDI_POSIX_eager_iqueue_iov_buf_pool_destroy(&transport->pool);
         }
     }
 
@@ -291,6 +304,7 @@ int MPIDI_POSIX_iqueue_finalize(void)
                 if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
                     MPL_free(transport->send_q);
                     MPL_free(transport->recv_q);
+                    MPIDI_POSIX_eager_iqueue_iov_buf_pool_destroy(&transport->pool);
                 }
             }
         }

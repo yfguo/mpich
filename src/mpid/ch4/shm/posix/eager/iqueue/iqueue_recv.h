@@ -37,7 +37,7 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
                     q->last_seq = new_seq;
                 }
                 cell = (MPIDI_POSIX_eager_iqueue_cell_t *)
-                    MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_IDX(q->header, idx);
+                    MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, q->last_ack);
                 break;
             }
         } else {
@@ -49,15 +49,25 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
             transaction->src_local_rank = cell->from;
             transaction->src_vci = vci_src;
             transaction->dst_vci = vci;
-            transaction->payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
+            if (cell->type & MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_IOV_BUF) {
+                uint64_t handle = ((MPIDI_POSIX_eager_iqueue_cell_ext_t *) cell)->iov_buf_handle;
+                transaction->payload = MPIDI_POSIX_eager_iqueue_iov_buf_map_handle(&transport->pool,
+                                                                                   handle);
+                /* printf("recv use iov buf, handle %0"PRIx64"\n", handle); */
+            } else {
+                transaction->payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
+            }
             transaction->payload_sz = cell->payload_size;
 
-            if (likely(cell->type == MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR)) {
+            if (likely(cell->type & MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR)) {
                 transaction->msg_hdr = &cell->am_header;
             } else {
-                MPIR_Assert(cell->type == MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA);
+                MPIR_Assert(cell->type & MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA);
                 transaction->msg_hdr = NULL;
             }
+            /* printf("recv type %0x, payload_size %d, from %d, am_type %d, am_hdr_sz %d, handler_id %d\n", */
+            /*        cell->type, cell->payload_size, cell->from, */
+            /*        cell->am_header.am_type, cell->am_header.am_hdr_sz, cell->am_header.handler_id); */
 
             transaction->transport.iqueue.pointer_to_cell = cell;
 

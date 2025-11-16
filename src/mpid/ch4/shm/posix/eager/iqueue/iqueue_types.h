@@ -9,22 +9,27 @@
 #include <mpidimpl.h>
 #include "mpidu_init_shm.h"
 #include "mpidu_genq.h"
+#include "iqueue_iov_buf.h"
 
-#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR 0
-#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA 1
-
-typedef struct MPIDI_POSIX_eager_iqueue_cell MPIDI_POSIX_eager_iqueue_cell_t;
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR 0x1
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA 0x2
+#define MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_IOV_BUF 0x4
 
 /* Each cell contains some data being communicated from one process to another.
  * The struct will be packed by default, occuping 16 bytes. Used in regular
  * queue and fast box */
-struct MPIDI_POSIX_eager_iqueue_cell {
+typedef struct MPIDI_POSIX_eager_iqueue_cell {
     uint16_t type;              /* Type of cell (head/tail/etc.) */
     uint16_t from;              /* Who is the message in the cell from */
     uint32_t payload_size;      /* Size of the message in the cell */
     MPIDI_POSIX_am_header_t am_header;  /* If this cell is the beginning of a message, it will have
                                          * an active message header and this will point to it. */
-};
+} MPIDI_POSIX_eager_iqueue_cell_t;
+
+typedef struct MPIDI_POSIX_eager_iqueue_cell_ext {
+    MPIDI_POSIX_eager_iqueue_cell_t base;
+    uint64_t iov_buf_handle;
+} MPIDI_POSIX_eager_iqueue_cell_ext_t;
 
 typedef struct {
     /* *INDENT-OFF* */
@@ -52,6 +57,7 @@ typedef struct MPIDI_POSIX_eager_iqueue_transport {
     MPIDU_genq_shmem_pool_t cell_pool;
     MPIDI_POSIX_eager_iqueue_fbox_t *send_q;
     MPIDI_POSIX_eager_iqueue_fbox_t *recv_q;
+    MPIDI_POSIX_eager_iqueue_iov_buf_pool_t pool;
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
 typedef struct MPIDI_POSIX_eager_iqueue_global {
@@ -60,6 +66,7 @@ typedef struct MPIDI_POSIX_eager_iqueue_global {
     int slab_size;
     int terminal_offset;
     int fbox_offset;
+    int iov_buf_offset;
     /* shmem slabs */
     void *root_slab;
     void *all_vci_slab;

@@ -11,10 +11,10 @@
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 {
-    if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
-        return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE
-            - sizeof(MPIDI_POSIX_eager_iqueue_cell_t) - MAX_ALIGNMENT;
-    }
+    /* if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) { */
+    /*     return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE */
+    /*         - sizeof(MPIDI_POSIX_eager_iqueue_cell_t) - MAX_ALIGNMENT; */
+    /* } */
     /* reduce the eager payload limit by MAX_ALIGNMENT to account for alignment in
      * MPIDI_POSIX_eager_send below */
     return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE - sizeof(MPIDI_POSIX_eager_iqueue_cell_t)
@@ -23,9 +23,9 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_payload_limit(void)
 
 MPL_STATIC_INLINE_PREFIX size_t MPIDI_POSIX_eager_buf_limit(void)
 {
-    if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
-        return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE;
-    }
+    /* if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) { */
+    /*     return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE; */
+    /* } */
     return MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_CELL_SIZE;
 }
 
@@ -36,17 +36,24 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
                             MPI_Aint * bytes_sent)
 {
     MPIDI_POSIX_eager_iqueue_transport_t *transport;
-    MPIDI_POSIX_eager_iqueue_cell_t *cell;
+    MPIDI_POSIX_eager_iqueue_cell_t *cell, *qcell;
     MPIDU_genq_shmem_queue_t terminal;
     size_t capacity, available;
     char *payload;
     int ret = MPIDI_POSIX_OK;
     MPI_Aint packed_size = 0;
+    bool need_iov_buf = false;
 
     MPIR_FUNC_ENTER;
 
+    MPI_Aint data_sz;
+    MPIDI_Datatype_check_size(datatype, count, data_sz);
+
     /* Get the transport object that holds all of the global variables. */
     transport = MPIDI_POSIX_eager_iqueue_get_transport(src_vci, dst_vci);
+
+    need_iov_buf = data_sz + MPL_ROUND_UP_ALIGN(am_hdr_sz, MAX_ALIGNMENT)
+        > MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport);
 
     /* Try to get a new cell to hold the message */
     /* Select the appropriate free queue depending on whether we are using intra-NUMA or inter-NUMAfree
@@ -64,32 +71,57 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
         if (new_ack == q->last_ack) {
             ret = MPIDI_POSIX_NOK;
             goto fn_exit;
+        } else {
+            /* see if any iov_buf need freeing */
+            for (int i = q->last_ack + 1; i <= new_ack; i++) {
+                MPIDI_POSIX_eager_iqueue_cell_ext_t *c = (MPIDI_POSIX_eager_iqueue_cell_ext_t *)
+                    MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, i);
+                uint64_t handle = ((MPIDI_POSIX_eager_iqueue_cell_ext_t *) c)->iov_buf_handle;
+                MPIDI_POSIX_eager_iqueue_iov_buf_pool_free(&transport->pool, handle);
+            }
         }
         q->last_ack = new_ack;
     }
 
-    /* Since num cells in ring buffer is power of two. Replacing the expensive
-     * modulo op with bit-wise AND. */
-    cell = (MPIDI_POSIX_eager_iqueue_cell_t *)
-        MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_IDX(q->header, idx);
+    if (need_iov_buf) {
+        uint64_t handle = MPIDI_POSIX_eager_iqueue_iov_buf_pool_alloc(&transport->pool);
+        if (handle == 0) {
+            ret = MPIDI_POSIX_NOK;
+            goto fn_exit;
+        }
+        qcell = (MPIDI_POSIX_eager_iqueue_cell_t *)
+            MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, q->last_seq);
+        qcell->type = MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_IOV_BUF;
+        ((MPIDI_POSIX_eager_iqueue_cell_ext_t *) qcell)->iov_buf_handle = handle;
 
-    /* Get the memory allocated to be used for the message transportation. */
-    payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
+        cell = (MPIDI_POSIX_eager_iqueue_cell_t *)
+            MPIDI_POSIX_eager_iqueue_iov_buf_map_handle(&transport->pool, handle);
+        capacity = MPIDI_POSIX_EAGER_IQUEUE_CELL_CAPACITY(transport);
+        payload = (char *) cell;
+        /* printf("send use iov buf, handle %0"PRIx64"\n", handle); */
+    } else {
+        qcell = (MPIDI_POSIX_eager_iqueue_cell_t *)
+            MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, q->last_seq);
+        qcell->type = 0;
 
-    /* Figure out the capacity of each cell */
-    capacity = MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport);
+        cell = qcell;
+        capacity = MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport);
+        payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
+    }
+
+
 
     available = capacity;
 
-    cell->from = MPIR_Process.local_rank;
+    qcell->from = MPIR_Process.local_rank;
 
     /* If this is the beginning of the message, mark it as the head. Otherwise it will be the
      * tail. */
-    cell->payload_size = 0;
+    qcell->payload_size = 0;
     if (am_hdr) {
         MPI_Aint resized_am_hdr_sz = MPL_ROUND_UP_ALIGN(am_hdr_sz, MAX_ALIGNMENT);
-        cell->am_header = *msg_hdr;
-        cell->type = MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR;
+        qcell->am_header = *msg_hdr;
+        qcell->type |= MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_HDR;
         /* send am_hdr if this is the first segment */
         if (is_topo_local) {
             MPIR_Typerep_copy(payload, am_hdr, am_hdr_sz, MPIR_TYPEREP_FLAG_NONE);
@@ -98,11 +130,11 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
         }
         /* make sure the data region starts at the boundary of MAX_ALIGNMENT */
         payload = payload + resized_am_hdr_sz;
-        cell->payload_size += resized_am_hdr_sz;
-        cell->am_header.am_hdr_sz = resized_am_hdr_sz;
-        available -= cell->am_header.am_hdr_sz;
+        qcell->payload_size += resized_am_hdr_sz;
+        qcell->am_header.am_hdr_sz = resized_am_hdr_sz;
+        available -= qcell->am_header.am_hdr_sz;
     } else {
-        cell->type = MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA;
+        qcell->type |= MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_DATA;
     }
 
     /* We want to skip packing of send buffer if there is no data to be sent . buf == NULL is
@@ -118,9 +150,13 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
             MPIR_Typerep_pack(buf, count, datatype, offset, payload, available, &packed_size,
                               MPIR_TYPEREP_FLAG_STREAM);
         }
-        cell->payload_size += packed_size;
+        qcell->payload_size += packed_size;
         *bytes_sent = packed_size;
     }
+
+    /* printf("send type %0x, payload_size %d, from %d, am_type %d, am_hdr_sz %d, handler_id %d\n", */
+    /*        qcell->type, qcell->payload_size, qcell->from, */
+    /*        qcell->am_header.am_type, qcell->am_header.am_hdr_sz, qcell->am_header.handler_id); */
 
     q->last_seq++;
     MPL_atomic_release_store_uint64(&q->header->seq, q->last_seq);
