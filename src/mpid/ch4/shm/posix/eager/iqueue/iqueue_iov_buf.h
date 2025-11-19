@@ -32,8 +32,10 @@ MPIDI_POSIX_eager_iqueue_iov_buf_pool_alloc(MPIDI_POSIX_eager_iqueue_iov_buf_poo
 {
     uint64_t handle = 0;
     if (pool->free_q) {
+        MPIDI_POSIX_eager_iqueue_iov_buf_header_t *tmp = pool->free_q;
         handle = pool->free_q->handle;
         pool->free_q = pool->free_q->next;
+        tmp->next = NULL;
     }
     return handle;
 }
@@ -45,6 +47,7 @@ MPIDI_POSIX_eager_iqueue_iov_buf_pool_free(MPIDI_POSIX_eager_iqueue_iov_buf_pool
     uint64_t idx = (handle - 1) / pool->cell_size - pool->idx_base;
     pool->headers[idx].next = pool->free_q;
     pool->free_q = &pool->headers[idx];
+    /* printf("free handle %0"PRIx64"\n", handle); */
     return 0;
 }
 

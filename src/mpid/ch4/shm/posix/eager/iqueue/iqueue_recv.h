@@ -26,16 +26,23 @@ MPIDI_POSIX_eager_recv_begin(int vci, MPIDI_POSIX_eager_recv_transaction_t * tra
         if (MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_ENABLE) {
             MPIDI_POSIX_eager_iqueue_fbox_t *q = NULL;
             for (int i = 0; i < MPIR_Process.local_size; i++) {
+                if (i == MPIR_Process.local_rank)
+                    continue;
+
                 q = &transport->recv_q[i];
                 /* read atomic if local cache is empty */
+                MPIR_Assert(q->last_ack <= q->last_seq);
+                MPIR_Assert(q->last_seq - q->last_ack <= q->size);
                 if (q->last_ack == q->last_seq) {
                     uint64_t new_seq = MPL_atomic_acquire_load_uint64(&q->header->seq);
                     /* if no update */
                     if (new_seq == q->last_seq) {
                         continue;
                     }
+                    print_new_seq(transport, i, q, new_seq);
                     q->last_seq = new_seq;
                 }
+                print_cntr(transport, i, false);
                 cell = (MPIDI_POSIX_eager_iqueue_cell_t *)
                     MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, q->last_ack);
                 break;

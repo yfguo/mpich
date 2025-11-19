@@ -52,7 +52,7 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
     /* Get the transport object that holds all of the global variables. */
     transport = MPIDI_POSIX_eager_iqueue_get_transport(src_vci, dst_vci);
 
-    need_iov_buf = data_sz + MPL_ROUND_UP_ALIGN(am_hdr_sz, MAX_ALIGNMENT)
+    need_iov_buf = (data_sz - offset + MPL_ROUND_UP_ALIGN(am_hdr_sz, MAX_ALIGNMENT))
         > MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport);
 
     /* Try to get a new cell to hold the message */
@@ -66,20 +66,25 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
 
     /* If a cell wasn't available, let the caller know that we weren't able to send the message
      * immediately. */
-    if (unlikely(q->last_seq - q->last_ack == q->size)) {
+    MPIR_Assert(q->last_seq >= q->last_ack);
+    if (q->last_seq - q->last_ack >= q->size) {
         uint64_t new_ack = MPL_atomic_acquire_load_uint64(&q->header->ack);
         if (new_ack == q->last_ack) {
             ret = MPIDI_POSIX_NOK;
             goto fn_exit;
         } else {
             /* see if any iov_buf need freeing */
-            for (int i = q->last_ack + 1; i <= new_ack; i++) {
+            print_new_ack(transport, dst_local_rank, q, new_ack);
+            for (uint64_t i = q->last_ack; i < new_ack; i++) {
                 MPIDI_POSIX_eager_iqueue_cell_ext_t *c = (MPIDI_POSIX_eager_iqueue_cell_ext_t *)
                     MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, i);
-                uint64_t handle = ((MPIDI_POSIX_eager_iqueue_cell_ext_t *) c)->iov_buf_handle;
-                MPIDI_POSIX_eager_iqueue_iov_buf_pool_free(&transport->pool, handle);
+                if (c->base.type & MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_IOV_BUF) {
+                    /* printf("i = %"PRIu64" free handle %0"PRIx64"\n", i, c->iov_buf_handle); */
+                    MPIDI_POSIX_eager_iqueue_iov_buf_pool_free(&transport->pool, c->iov_buf_handle);
+                }
             }
         }
+        /* printf("last_ack %"PRIu64" ==> new_ack %"PRIu64" last_seq %"PRIu64"\n", q->last_ack, new_ack, q->last_seq); */
         q->last_ack = new_ack;
     }
 
@@ -98,7 +103,6 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
             MPIDI_POSIX_eager_iqueue_iov_buf_map_handle(&transport->pool, handle);
         capacity = MPIDI_POSIX_EAGER_IQUEUE_CELL_CAPACITY(transport);
         payload = (char *) cell;
-        /* printf("send use iov buf, handle %0"PRIx64"\n", handle); */
     } else {
         qcell = (MPIDI_POSIX_eager_iqueue_cell_t *)
             MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, q->last_seq);
@@ -108,8 +112,7 @@ MPIDI_POSIX_eager_send_fbox(int grank, MPIDI_POSIX_am_header_t * msg_hdr, const 
         capacity = MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_CAPACITY(transport);
         payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
     }
-
-
+    print_cntr(transport, dst_local_rank, true);
 
     available = capacity;
 

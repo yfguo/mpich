@@ -93,10 +93,82 @@ MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_iqueue_transport_t
 
 #define MPIDI_POSIX_EAGER_IQUEUE_FBOX_CELL_BY_CNTR(q, cntr) \
     ((char *) (q)->header + sizeof(MPIDI_POSIX_eager_iqueue_fbox_header_t) \
-     + ((cntr) % ((q)->size - 1)) * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE)
+     + ((cntr) & ((q)->size - 1)) * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE)
+
+#define CNTR_TO_RB_IDX(q, cntr) ((int) ((cntr) & ((q)->size - 1)))
 
 #define MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(base, idx) \
     ((char *) (base) + (idx) * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_CELL_SIZE \
      * MPIR_CVAR_CH4_SHM_POSIX_IQUEUE_FBOX_NUM_CELLS)
 
+MPL_STATIC_INLINE_PREFIX void print_cntr(MPIDI_POSIX_eager_iqueue_transport_t *t, int peer,
+                                         bool is_do_send)
+{
+    MPIDI_POSIX_eager_iqueue_fbox_t *s = NULL, *r = NULL;
+    s = &t->send_q[peer];
+    r = &t->recv_q[peer];
+    if (is_do_send) {
+        printf("%d: s->s %"PRIu64"(%2d) s->a %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               s->last_seq, CNTR_TO_RB_IDX(s, s->last_seq),
+               s->last_ack, CNTR_TO_RB_IDX(s, s->last_ack)
+               );
+    } else {
+        printf("%d:     r->s %"PRIu64"(%2d) r->a %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               r->last_seq, CNTR_TO_RB_IDX(r, r->last_seq),
+               r->last_ack, CNTR_TO_RB_IDX(r, r->last_ack)
+               );
+    }
+}
+
+MPL_STATIC_INLINE_PREFIX void print_new_ack(MPIDI_POSIX_eager_iqueue_transport_t *t, int peer,
+                                            MPIDI_POSIX_eager_iqueue_fbox_t *q,
+                                            uint64_t new_value)
+{
+    MPIDI_POSIX_eager_iqueue_fbox_t *s = NULL, *r = NULL;
+    s = &t->send_q[peer];
+    r = &t->recv_q[peer];
+    if (s == q) {
+        printf("%d: UPDATE s->s %"PRIu64"(%2d) s->a %"PRIu64"(%2d) => %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               s->last_seq, CNTR_TO_RB_IDX(s, s->last_seq),
+               s->last_ack, CNTR_TO_RB_IDX(s, s->last_ack),
+               new_value, CNTR_TO_RB_IDX(s, new_value)
+               );
+    }
+    if (r == q) {
+        printf("%d: UPDATE     r->s %"PRIu64"(%2d) r->a %"PRIu64"(%2d) => %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               r->last_seq, CNTR_TO_RB_IDX(r, r->last_seq),
+               r->last_ack, CNTR_TO_RB_IDX(r, r->last_ack),
+               new_value, CNTR_TO_RB_IDX(r, new_value)
+               );
+    }
+}
+
+MPL_STATIC_INLINE_PREFIX void print_new_seq(MPIDI_POSIX_eager_iqueue_transport_t *t, int peer,
+                                            MPIDI_POSIX_eager_iqueue_fbox_t *q,
+                                            uint64_t new_value)
+{
+    MPIDI_POSIX_eager_iqueue_fbox_t *s = NULL, *r = NULL;
+    s = &t->send_q[peer];
+    r = &t->recv_q[peer];
+    if (s == q) {
+        printf("%d: UPDATE s->s %"PRIu64"(%2d) => %"PRIu64"(%2d) s->a %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               s->last_seq, CNTR_TO_RB_IDX(s, s->last_seq),
+               new_value, CNTR_TO_RB_IDX(s, new_value),
+               s->last_ack, CNTR_TO_RB_IDX(s, s->last_ack)
+               );
+    }
+    if (r == q) {
+        printf("%d: UPDATE     r->s %"PRIu64"(%2d) => %"PRIu64"(%2d) r->a %"PRIu64"(%2d)\n",
+               MPIR_Process.rank,
+               r->last_seq, CNTR_TO_RB_IDX(r, r->last_seq),
+               new_value, CNTR_TO_RB_IDX(r, new_value),
+               r->last_ack, CNTR_TO_RB_IDX(r, r->last_ack)
+               );
+    }
+}
 #endif /* POSIX_EAGER_IQUEUE_TYPES_H_INCLUDED */

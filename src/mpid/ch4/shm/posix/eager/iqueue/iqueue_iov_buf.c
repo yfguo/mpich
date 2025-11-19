@@ -14,9 +14,9 @@ int MPIDI_POSIX_eager_iqueue_iov_buf_pool_init(void *slab, int cell_size, int nu
 
     pool->size = num_cells;
     pool->cell_size = cell_size;
-    pool->idx_base = idx_base;
+    pool->idx_base = idx_base * num_cells;
     pool->slab = slab;
-    void *base = slab + idx_base * num_cells * cell_size;
+    void *base = slab + pool->idx_base * cell_size;
     memset(base, 0, num_cells * cell_size);
 
     pool->free_q = NULL;

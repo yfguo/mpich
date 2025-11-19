@@ -124,6 +124,7 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
             int fb_idx = MPIR_Process.local_rank * MPIR_Process.local_size + send_rank;
             transport->send_q[send_rank].header = (MPIDI_POSIX_eager_iqueue_fbox_header_t *)
                 MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(fbox_base, fb_idx);
+            MPIR_Assert((uintptr_t) transport->send_q[send_rank].header % MPL_CACHELINE_SIZE == 0);
             transport->send_q[send_rank].size = transport->fb_num_cells;
             transport->send_q[send_rank].last_seq = 0;
             transport->send_q[send_rank].last_ack = 0;
@@ -132,6 +133,7 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
             int fb_idx = recv_rank * MPIR_Process.local_size + MPIR_Process.local_rank;
             transport->recv_q[recv_rank].header = (MPIDI_POSIX_eager_iqueue_fbox_header_t *)
                 MPIDI_POSIX_EAGER_IQUEUE_FBOX_BY_IDX(fbox_base, fb_idx);
+            MPIR_Assert((uintptr_t) transport->recv_q[recv_rank].header % MPL_CACHELINE_SIZE == 0);
             transport->recv_q[recv_rank].size = transport->fb_num_cells;
             transport->recv_q[recv_rank].last_seq = 0;
             transport->recv_q[recv_rank].last_ack = 0;
@@ -141,8 +143,8 @@ static int init_transport(void *slab, int vci_src, int vci_dst)
          * process via first-touch. */
         for (int i = 0; i < MPIR_Process.local_size; i++) {
             memset(transport->recv_q[i].header, 0, fbox_size);
-            MPL_atomic_store_uint64(&transport->recv_q[i].header->seq, 0);
-            MPL_atomic_store_uint64(&transport->recv_q[i].header->ack, 0);
+            MPL_atomic_release_store_uint64(&transport->recv_q[i].header->seq, 0);
+            MPL_atomic_release_store_uint64(&transport->recv_q[i].header->ack, 0);
         }
 
         int iov_buf_idx_base = MPIR_Process.local_rank;
