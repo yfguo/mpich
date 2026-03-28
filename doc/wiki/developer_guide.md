@@ -257,69 +257,39 @@ Reference:
 * [src/mpid/ch4/src/mpidig_recvq.h](../../src/mpid/ch4/src/mpidig_recvq.h)
 * [src/mpid/ch4/src/mpidig_rma.h](../../src/mpid/ch4/src/mpidig_rma.h)
 * [src/mpid/ch4/src/mpidig_rma_callbacks.h](../../src/mpid/ch4/src/mpidig_rma_callbacks.h)
-* [src/mpid/ch4/src/mpidig_rma_callbacks.h](../../src/mpid/ch4/src/mpidig_rma_callbacks.h)
+* [src/mpid/ch4/ch4_api.txt](../../src/mpid/ch4/ch4_api.txt)
 
-Active message APIs as of MPICH 3.4.2:
-```
-/****************** Header and Data Movement APIs ******************/
+Active message APIs are generated from `src/mpid/ch4/ch4_api.txt` and
+kept in sync with the current device implementation (MPICH 5.0.0a1 at
+the time of writing). The canonical list in that file is extensive, but
+the most commonly used entry points are summarized below. Every variant
+receives both source and destination VCI identifiers so that multi-VCI
+configurations can steer traffic explicitly.
 
-/* blocking header send */
-int MPIDI_[NM|SHM]_am_send_hdr(int rank, MPIR_Comm * comm, int handler_id,
-                               const void *am_hdr, MPI_Aint am_hdr_sz)
+* **Header/data transport**: `MPIDI_[NM|SHM]_am_send_hdr`,
+  `MPIDI_[NM|SHM]_am_isend`, `MPIDI_[NM|SHM]_am_send_hdr_reply`, and
+  `MPIDI_[NM|SHM]_am_isend_reply` handle the eager and rendezvous
+  handshake paths.
+* **Capability queries**: `MPIDI_[NM|SHM]_am_hdr_max_sz`,
+  `MPIDI_[NM|SHM]_am_eager_limit`, and
+  `MPIDI_[NM|SHM]_am_eager_buf_limit` report transport limits that drive
+  protocol selection.
+* **Decision helpers**: `MPIDI_[NM|SHM]_am_check_eager` validates whether
+  a particular payload can use the eager path and `MPIDI_[NM|SHM]_am_can_do_tag`
+  advertises tag-matching support. `MPIDI_[NM|SHM]_am_get_data_copy_cb`
+  returns the netmod/shmmod-specific receive buffer copy callback.
+* **Tag matching accelerators**: `MPIDI_[NM|SHM]_am_tag_send` and
+  `MPIDI_[NM|SHM]_am_tag_recv` implement optimized tag matching for
+  transports that support it.
+* **Request lifecycle hooks**: `MPIDI_[NM|SHM]_am_request_init` and
+  `MPIDI_[NM|SHM]_am_request_finalize` must be invoked to prepare and
+  clean up device-specific request bookkeeping.
 
-/* nonblocking header + datatype send */
-int MPIDI_[NM|SHM]_am_isend(int rank, MPIR_Comm * comm, int handler_id,
-                            const void *am_hdr, MPI_Aint am_hdr_sz,
-                            const void *data, MPI_Aint count,
-                            MPI_Datatype datatype, MPIR_Request * sreq)
+Refer to `ch4_api.txt` when adding new functionality to ensure that any
+new active message entry points are reflected in the generated glue
+code. The callback typedefs and registration helpers used by these
+handlers are defined in `src/mpid/ch4/src/mpidig.h`.
 
-/* nonblocking headers + datatype send */
-int MPIDI_[NM|SHM]_am_isendv(int rank, MPIR_Comm * comm, int handler_id,
-                             struct iovec *am_hdrs, size_t iov_len,
-                             const void *data, MPI_Aint count,
-                             MPI_Datatype datatype, MPIR_Request * sreq)
-
-/* blocking header send (callback safe) */
-int MPIDI_[NM|SHM]_am_send_hdr_reply(MPIR_Comm * comm, int src_rank,
-                                     int handler_id, const void *am_hdr,
-                                     MPI_Aint am_hdr_sz)
-
-/* nonblocking header + datatype send (callback safe) */
-int MPIDI_[NM|SHM]_am_isend_reply(MPIR_Comm * comm, int src_rank, int handler_id,
-                                  const void *am_hdr, MPI_Aint am_hdr_sz,
-                                  const void *data, MPI_Aint count,
-                                  MPI_Datatype datatype, MPIR_Request * sreq)
-
-/* CTS for pt2pt messages */
-int MPIDI_[NM|SHM]_am_recv(MPIR_Request * rreq)
-
-/* largest header (in bytes) supported by the nm/shm */
-MPI_Aint MPIDI_[NM|SHM]_am_hdr_max_sz(void)
-
-/* eager size supported by transport (only used internally by nm/shm) */
-MPI_Aint MPIDI_[NM|SHM]_am_eager_limit(void)
-
-/* eager buffer size supported by transport, used to assert pipeline protocol will work(?) */
-MPI_Aint MPIDI_[NM|SHM]_am_eager_buf_limit(void)
-
-/* return true/false if pt2pt message can be sent eagerly */
-bool MPIDI_[NM|SHM]_am_check_eager(MPI_Aint am_hdr_sz, MPI_Aint data_sz,
-                                   const void *data, MPI_Aint count,
-                                   MPI_Datatype datatype, MPIR_Request * sreq)
-
-/****************** Callback APIs ******************/
-
-/* target-side message callback */
-typedef int (*MPIDIG_am_target_msg_cb) (int handler_id, void *am_hdr,
-                                        void *data, MPI_Aint data_sz,
-                                        int is_local, int is_async, MPIR_Request ** req);
-
-/* target-side completion callback */
-typedef int (*MPIDIG_am_target_cmpl_cb) (MPIR_Request * req);
-
-/* origin-side completion callback */
-typedef int (*MPIDIG_am_origin_cb) (MPIR_Request * req);
-```
  
 #### SHM
 
